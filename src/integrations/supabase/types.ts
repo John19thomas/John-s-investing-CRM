@@ -14,7 +14,284 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      analyses: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          kind: string
+          sources: Json
+          symbol: string | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          kind?: string
+          sources?: Json
+          symbol?: string | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          kind?: string
+          sources?: Json
+          symbol?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      dashboard_widgets: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          id: string
+          position: number
+          user_id: string
+          widget_key: string
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          position?: number
+          user_id: string
+          widget_key: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          position?: number
+          user_id?: string
+          widget_key?: string
+        }
+        Relationships: []
+      }
+      earnings_events: {
+        Row: {
+          company_name: string | null
+          created_at: string
+          event_date: string
+          id: string
+          kind: string
+          notes: string | null
+          symbol: string
+          user_id: string
+        }
+        Insert: {
+          company_name?: string | null
+          created_at?: string
+          event_date: string
+          id?: string
+          kind?: string
+          notes?: string | null
+          symbol: string
+          user_id: string
+        }
+        Update: {
+          company_name?: string | null
+          created_at?: string
+          event_date?: string
+          id?: string
+          kind?: string
+          notes?: string | null
+          symbol?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      holdings: {
+        Row: {
+          asset_kind: string
+          avg_price: number
+          created_at: string
+          currency: string
+          external_ref: string | null
+          id: string
+          last_price: number | null
+          last_price_updated_at: string | null
+          name: string | null
+          quantity: number
+          region: string
+          source: string
+          symbol: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          asset_kind?: string
+          avg_price?: number
+          created_at?: string
+          currency?: string
+          external_ref?: string | null
+          id?: string
+          last_price?: number | null
+          last_price_updated_at?: string | null
+          name?: string | null
+          quantity?: number
+          region?: string
+          source: string
+          symbol: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          asset_kind?: string
+          avg_price?: number
+          created_at?: string
+          currency?: string
+          external_ref?: string | null
+          id?: string
+          last_price?: number | null
+          last_price_updated_at?: string | null
+          name?: string | null
+          quantity?: number
+          region?: string
+          source?: string
+          symbol?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      portfolio_snapshots: {
+        Row: {
+          breakdown: Json | null
+          created_at: string
+          currency: string
+          day_change: number | null
+          day_change_pct: number | null
+          id: string
+          taken_at: string
+          total_value: number
+          user_id: string
+        }
+        Insert: {
+          breakdown?: Json | null
+          created_at?: string
+          currency?: string
+          day_change?: number | null
+          day_change_pct?: number | null
+          id?: string
+          taken_at?: string
+          total_value: number
+          user_id: string
+        }
+        Update: {
+          breakdown?: Json | null
+          created_at?: string
+          currency?: string
+          day_change?: number | null
+          day_change_pct?: number | null
+          id?: string
+          taken_at?: string
+          total_value?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      private_companies: {
+        Row: {
+          created_at: string
+          id: string
+          invested_amount: number | null
+          key_risks: string | null
+          last_valuation: number | null
+          metrics: Json
+          name: string
+          sector: string | null
+          stage: string | null
+          status: string
+          thesis: string | null
+          updated_at: string
+          user_id: string
+          valuation_currency: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          invested_amount?: number | null
+          key_risks?: string | null
+          last_valuation?: number | null
+          metrics?: Json
+          name: string
+          sector?: string | null
+          stage?: string | null
+          status?: string
+          thesis?: string | null
+          updated_at?: string
+          user_id: string
+          valuation_currency?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          invested_amount?: number | null
+          key_risks?: string | null
+          last_valuation?: number | null
+          metrics?: Json
+          name?: string
+          sector?: string | null
+          stage?: string | null
+          status?: string
+          thesis?: string | null
+          updated_at?: string
+          user_id?: string
+          valuation_currency?: string
+        }
+        Relationships: []
+      }
+      private_documents: {
+        Row: {
+          company_id: string
+          filename: string
+          id: string
+          mime_type: string | null
+          size_bytes: number | null
+          storage_path: string
+          uploaded_at: string
+          user_id: string
+        }
+        Insert: {
+          company_id: string
+          filename: string
+          id?: string
+          mime_type?: string | null
+          size_bytes?: number | null
+          storage_path: string
+          uploaded_at?: string
+          user_id: string
+        }
+        Update: {
+          company_id?: string
+          filename?: string
+          id?: string
+          mime_type?: string | null
+          size_bytes?: number | null
+          storage_path?: string
+          uploaded_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "private_documents_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "private_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
