@@ -3,10 +3,10 @@
 Brief: read-only personal investing app; email login; Inter font; dense CRM tables; left sidebar; side-panel details; green/red for P&L; mobile-friendly. No trading features ever.
 
 ## Tasks
-- [ ] Stop backend setup; remove generated migration files; disconnect current Supabase via project settings and switch to existing investing-dashboard. No further migrations.
+- [x] Stop backend setup and remove generated migration files. No further migrations.
+- [ ] User disconnects current external Supabase and connects existing investing-dashboard via project settings; resume only after switching.
 - [x] Confirm Supabase connection; user confirmed project is new/empty → create schema here (user override of "do not create tables")
-- [ ] Migration: tables holdings, portfolio_snapshots, earnings_events, analyses, private_companies, private_documents, dashboard_widgets (+ grants, RLS, updated_at triggers)
-- [ ] Storage bucket private-docs (private) + storage RLS policies
+- [ ] Inspect existing investing-dashboard tables, storage and edge functions read-only after connection; do not create or alter them.
 - [ ] Email auth (login/signup routes) + protected app shell with left sidebar
 - [ ] Home page — widgets from dashboard_widgets (defaults if none) + "Customise view" panel
 - [ ] Holdings page — unified table (Kite / Kite MF / Revolut / Manual filters), P&L + weight columns, portfolio value chart from portfolio_snapshots, "Last synced"
@@ -19,5 +19,5 @@ Brief: read-only personal investing app; email login; Inter font; dense CRM tabl
 - [ ] Verify: build OK, auth flow, read/write flow, RLS isolation
 
 ## Blocked / pending
-- Kite credentials (Zerodha API key + secret) — needed for live sync; function returns needs_login / not_configured until set.
+- App implementation paused pending connection to investing-dashboard. Preserve its existing storage and edge functions; no further migrations.
 - Git sync — user will connect in More → Settings → Git (agent cannot do it).
