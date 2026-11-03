@@ -3,6 +3,7 @@
 Brief: read-only personal investing app; email login; Inter font; dense CRM tables; left sidebar; side-panel details; green/red for P&L; mobile-friendly. No trading features ever.
 
 ## Tasks
+- [ ] Stop backend setup; remove generated migration files; disconnect current Supabase via project settings and switch to existing investing-dashboard. No further migrations.
 - [x] Confirm Supabase connection; user confirmed project is new/empty → create schema here (user override of "do not create tables")
 - [ ] Migration: tables holdings, portfolio_snapshots, earnings_events, analyses, private_companies, private_documents, dashboard_widgets (+ grants, RLS, updated_at triggers)
 - [ ] Storage bucket private-docs (private) + storage RLS policies
