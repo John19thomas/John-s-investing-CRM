@@ -19,5 +19,5 @@ Brief: read-only personal investing app; email login; Inter font; dense CRM tabl
 - [ ] Verify: build OK, auth flow, read/write flow, RLS isolation
 
 ## Blocked / pending
-- App implementation paused pending connection to investing-dashboard. Preserve its existing storage and edge functions; no further migrations.
+- Backend paused: the user's Claude Code now owns the database, storage and edge functions (investing-dashboard). No migrations, schema changes, or edge-function work from this app — front-end only.
 - Git sync — user will connect in More → Settings → Git (agent cannot do it).
