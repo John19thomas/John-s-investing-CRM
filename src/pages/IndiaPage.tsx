@@ -25,18 +25,15 @@ import { invested, marketValue, type Holding } from "@/data/types";
 import { money, moneyCompact, pct, signedMoney } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
-type Filter = "all" | "kite" | "kite_mf";
-
 export default function IndiaPage() {
   const holdings = useHoldings("india");
   const snapshots = useSnapshots("india");
   const sync = useKiteSync();
   const txns = useTransactions("india");
-  const [filter, setFilter] = useState<Filter>("all");
   const [tradebookOpen, setTradebookOpen] = useState(false);
 
   const all = useMemo(() => holdings.data ?? [], [holdings.data]);
-  const visible = filter === "all" ? all : all.filter((h) => h.source === filter);
+  const visible = all;
   const s = summarize(all, "INR");
   const stats = useMemo(() => statsBySymbol(all, txns.data ?? []), [all, txns.data]);
   const book = bookXirr(all, txns.data ?? [], stats);
@@ -49,7 +46,7 @@ export default function IndiaPage() {
             description: "Kite sessions expire daily.",
           });
           window.location.href = r.loginUrl;
-        } else toast.success(`Synced ${r.equityCount} stocks and ${r.mfCount} funds from Kite`);
+        } else toast.success(`Synced ${r.equityCount} stocks from Kite`);
       },
       onError: (e) => toast.error("Kite sync failed", { description: e.message }),
     });
@@ -73,7 +70,7 @@ export default function IndiaPage() {
               {formatDistanceToNow(new Date(s.lastSynced), { addSuffix: true })}
             </>
           ) : (
-            "Stocks and mutual funds, read directly from your Zerodha Kite account."
+            "Stocks read directly from your Zerodha Kite account. Mutual funds and bonds are excluded."
           )
         }
         actions={syncButton}
@@ -161,15 +158,6 @@ export default function IndiaPage() {
             stats={stats}
             controls={
               <>
-                <SegmentedControl
-                  value={filter}
-                  onChange={setFilter}
-                  options={[
-                    { value: "all", label: "All" },
-                    { value: "kite", label: "Stocks" },
-                    { value: "kite_mf", label: "Funds" },
-                  ]}
-                />
                 <button
                   type="button"
                   onClick={() => setTradebookOpen(true)}

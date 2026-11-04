@@ -23,8 +23,8 @@ const SECTIONS = [
   {
     n: "03",
     to: "/demo/private/global",
-    title: "Private investments",
-    body: "Companies invested in or under review, split into Global and India. Notes and PDF documents for each company.",
+    title: "Private company tracker",
+    body: "Private companies invested in or tracked, split into Global and India. Analysis, notes and memos stored with each company.",
     source: "Notes and PDFs",
   },
 ];
@@ -129,9 +129,9 @@ export default function Landing() {
           </div>
           <dl className="grid grid-cols-1 sm:grid-cols-3">
             {[
-              ["India equities", "₹33.0L", "11 stocks, 3 funds"],
+              ["India equities", "₹24.1L", "11 stocks"],
               ["Global equities", "$50.9K", "9 positions"],
-              ["Private investments", "7", "companies, 2 invested"],
+              ["Private company tracker", "7", "companies, 2 invested"],
             ].map(([k, v, d]) => (
               <div
                 key={k}

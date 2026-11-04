@@ -68,7 +68,28 @@ export type CompanyDocument = {
   summary: string | null;
   keyTakeaways: string | null;
   uploadedAt: string;
+  /** Set when the file lives elsewhere (e.g. Google Drive) rather than in Storage. */
+  externalUrl: string | null;
+  mimeType: string | null;
 };
+
+export type DocType =
+  "analysis" | "notes" | "memo" | "deck" | "financials" | "transcript" | "other";
+export const DOC_TYPE_LABEL: Record<DocType, string> = {
+  analysis: "Analysis",
+  notes: "Notes",
+  memo: "Memo",
+  deck: "Deck",
+  financials: "Financials",
+  transcript: "Transcript",
+  other: "Other",
+};
+
+/** Claude reads PDFs and plain-text files; other formats are stored and opened as-is. */
+export const canSummarize = (mime: string | null | undefined, name = "") =>
+  mime === "application/pdf" ||
+  !!mime?.startsWith("text/") ||
+  /\.(pdf|txt|md|markdown|csv)$/i.test(name);
 
 export type KiteSyncResult =
   | { status: "ok"; equityCount: number; mfCount: number; syncedAt: string }
@@ -162,7 +183,7 @@ export interface Repo {
   addNote(companyId: string, body: string): Promise<Note>;
   deleteNote(id: string): Promise<void>;
   documents(companyId: string): Promise<CompanyDocument[]>;
-  uploadDocument(companyId: string, file: File): Promise<CompanyDocument>;
+  uploadDocument(companyId: string, file: File, docType: DocType): Promise<CompanyDocument>;
   summarizeDocument(id: string): Promise<CompanyDocument>;
   documentUrl(doc: CompanyDocument): Promise<string | null>;
   profiles(): Promise<CompanyProfile[]>;

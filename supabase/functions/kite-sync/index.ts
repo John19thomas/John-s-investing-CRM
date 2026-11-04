@@ -100,7 +100,9 @@ Deno.serve(async (req) => {
       );
   }
 
-  // 2) Read holdings (equity + mutual funds)
+  // 2) Read equity holdings. Mutual funds are not tracked, and debt instruments (NCDs, bonds)
+  // are skipped: Indian ISINs carry the security type at positions 8-9, where "01" is equity.
+  // ETFs (INF… ISINs) are kept.
   const eq = await kiteGet("/portfolio/holdings", apiKey, accessToken!);
   if (!eq.ok) {
     if (eq.status === 403)
@@ -113,45 +115,34 @@ Deno.serve(async (req) => {
       );
     return json({ error: "Kite holdings fetch failed", detail: eq.body?.message }, 502);
   }
-  const mf = await kiteGet("/mf/holdings", apiKey, accessToken!);
   const now = new Date().toISOString();
+  const isEquity = (isin: string | null | undefined) =>
+    !isin || isin.startsWith("INF") || !isin.startsWith("IN") || isin.slice(7, 9) === "01";
 
-  const eqRows = (eq.body.data ?? []).map((h: any) => ({
-    user_id: user.id,
-    source: "kite",
-    symbol: h.tradingsymbol,
-    exchange: h.exchange,
-    isin: h.isin,
-    quantity: (h.quantity ?? 0) + (h.t1_quantity ?? 0),
-    avg_price: h.average_price,
-    last_price: h.last_price,
-    close_price: h.close_price,
-    day_change_pct: h.day_change_percentage,
-    pnl: h.pnl,
-    currency: "INR",
-    snapshot_at: now,
-  }));
-  const mfRows = mf.ok
-    ? (mf.body.data ?? []).map((h: any) => ({
-        user_id: user.id,
-        source: "kite_mf",
-        symbol: h.tradingsymbol,
-        exchange: "MF",
-        name: h.fund,
-        quantity: h.quantity,
-        avg_price: h.average_price,
-        last_price: h.last_price,
-        pnl: h.pnl,
-        currency: "INR",
-        snapshot_at: now,
-      }))
-    : [];
+  const eqRows = (eq.body.data ?? [])
+    .filter((h: any) => isEquity(h.isin))
+    .map((h: any) => ({
+      user_id: user.id,
+      source: "kite",
+      symbol: h.tradingsymbol,
+      exchange: h.exchange,
+      isin: h.isin,
+      quantity: (h.quantity ?? 0) + (h.t1_quantity ?? 0),
+      avg_price: h.average_price,
+      last_price: h.last_price,
+      close_price: h.close_price,
+      day_change_pct: h.day_change_percentage,
+      pnl: h.pnl,
+      currency: "INR",
+      snapshot_at: now,
+    }));
 
   // Replace Kite rows with the fresh snapshot (Revolut/manual rows untouched)
-  for (const [src, rows] of [
-    ["kite", eqRows],
-    ["kite_mf", mfRows],
-  ] as const) {
+  // Mutual funds are no longer tracked: clear any rows left from earlier syncs.
+  await admin.from("holdings").delete().eq("user_id", user.id).eq("source", "kite_mf");
+  await admin.from("portfolio_snapshots").delete().eq("user_id", user.id).eq("source", "kite_mf");
+
+  for (const [src, rows] of [["kite", eqRows]] as const) {
     await admin.from("holdings").delete().eq("user_id", user.id).eq("source", src);
     if (rows.length) {
       const { error } = await admin.from("holdings").insert(rows);
@@ -173,5 +164,5 @@ Deno.serve(async (req) => {
     );
   }
 
-  return json({ ok: true, equity_count: eqRows.length, mf_count: mfRows.length, synced_at: now });
+  return json({ ok: true, equity_count: eqRows.length, mf_count: 0, synced_at: now });
 });

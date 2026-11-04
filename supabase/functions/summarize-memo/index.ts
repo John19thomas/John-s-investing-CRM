@@ -56,7 +56,10 @@ const SCHEMA = {
         },
       },
     },
-    doc_type: { type: "string", enum: ["memo", "deck", "financials", "transcript", "other"] },
+    doc_type: {
+      type: "string",
+      enum: ["memo", "analysis", "notes", "deck", "financials", "transcript", "other"],
+    },
   },
 } as const;
 
@@ -66,7 +69,7 @@ type Extract = {
   thesis: string;
   key_risks: string[];
   key_metrics: { name: string; value: string; period: string }[];
-  doc_type: "memo" | "deck" | "financials" | "transcript" | "other";
+  doc_type: "memo" | "analysis" | "notes" | "deck" | "financials" | "transcript" | "other";
 };
 
 Deno.serve(async (req) => {
@@ -93,20 +96,39 @@ Deno.serve(async (req) => {
 
   const { data: doc, error: docErr } = await db
     .from("private_documents")
-    .select("id, company_id, title, storage_path")
+    .select("id, company_id, title, storage_path, doc_type, mime_type, external_url")
     .eq("id", body.document_id)
     .maybeSingle();
   if (docErr || !doc) return json({ error: "Document not found" }, 404);
+
+  if (!doc.storage_path || doc.storage_path.startsWith("drive:"))
+    return json(
+      { error: "This document is linked from Google Drive, so there is no copy to read." },
+      422,
+    );
 
   const { data: file, error: dlErr } = await db.storage
     .from("private-docs")
     .download(doc.storage_path);
   if (dlErr || !file)
     return json({ error: "Couldn't download the file", detail: dlErr?.message }, 404);
-  if (file.size > MAX_PDF_BYTES) return json({ error: "PDF is larger than 25 MB" }, 413);
+  if (file.size > MAX_PDF_BYTES) return json({ error: "File is larger than 25 MB" }, 413);
   const bytes = new Uint8Array(await file.arrayBuffer());
-  if (new TextDecoder().decode(bytes.slice(0, 5)) !== "%PDF-")
-    return json({ error: "File is not a PDF" }, 415);
+  const isPdf = new TextDecoder().decode(bytes.slice(0, 5)) === "%PDF-";
+  const isText =
+    (doc.mime_type ?? "").startsWith("text/") || /\.(txt|md|markdown|csv)$/i.test(doc.storage_path);
+  if (!isPdf && !isText)
+    return json(
+      { error: "Claude can read PDF and text files. This file is stored but not summarised." },
+      415,
+    );
+  const source = isPdf
+    ? { type: "base64" as const, media_type: "application/pdf" as const, data: encodeBase64(bytes) }
+    : {
+        type: "text" as const,
+        media_type: "text/plain" as const,
+        data: new TextDecoder().decode(bytes),
+      };
 
   const { data: company } = await db
     .from("private_companies")
@@ -131,7 +153,7 @@ Deno.serve(async (req) => {
             {
               type: "document",
               title: doc.title ?? undefined,
-              source: { type: "base64", media_type: "application/pdf", data: encodeBase64(bytes) },
+              source,
             },
             {
               type: "text",
@@ -162,7 +184,8 @@ Deno.serve(async (req) => {
     .update({
       summary: extract.summary,
       key_takeaways: bullets(extract.key_takeaways),
-      doc_type: extract.doc_type,
+      // Keep the type the user chose; only classify documents that have none.
+      ...(doc.doc_type ? {} : { doc_type: extract.doc_type }),
     })
     .eq("id", doc.id);
   if (upd.error)

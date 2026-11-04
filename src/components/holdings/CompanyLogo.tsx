@@ -13,7 +13,15 @@ export function CompanyLogo({
   size?: number;
   className?: string;
 }) {
-  const [failed, setFailed] = useState(false);
+  // Try Google's icon service, then DuckDuckGo's, then fall back to initials.
+  const [attempt, setAttempt] = useState(0);
+  const sources = website
+    ? [
+        `https://www.google.com/s2/favicons?domain=${encodeURIComponent(website)}&sz=128`,
+        `https://icons.duckduckgo.com/ip3/${encodeURIComponent(website)}.ico`,
+      ]
+    : [];
+  const failed = attempt >= sources.length;
   const initials = name
     .replace(/[^A-Za-z0-9& ]/g, " ")
     .split(/\s+/)
@@ -35,13 +43,14 @@ export function CompanyLogo({
     >
       {showImg ? (
         <img
-          src={`https://www.google.com/s2/favicons?domain=${encodeURIComponent(website)}&sz=128`}
+          key={attempt}
+          src={sources[attempt]}
           alt=""
           width={size}
           height={size}
           loading="lazy"
           className="size-[72%] object-contain"
-          onError={() => setFailed(true)}
+          onError={() => setAttempt((a) => a + 1)}
         />
       ) : (
         initials || "?"

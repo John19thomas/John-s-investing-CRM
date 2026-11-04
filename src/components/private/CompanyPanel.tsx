@@ -15,7 +15,15 @@ import {
   useUploadDocument,
 } from "@/data/hooks";
 import { useRepo } from "@/data/RepoContext";
-import { STATUS_LABEL, STATUS_ORDER, type Company, type CompanyDocument } from "@/data/types";
+import {
+  canSummarize,
+  DOC_TYPE_LABEL,
+  STATUS_LABEL,
+  STATUS_ORDER,
+  type Company,
+  type CompanyDocument,
+  type DocType,
+} from "@/data/types";
 import { moneyCompact } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { CompanyForm } from "./CompanyForm";
@@ -290,30 +298,42 @@ function Notes({ company }: { company: Company }) {
   );
 }
 
+const UPLOAD_TYPES: DocType[] = ["analysis", "notes", "memo", "financials", "deck", "other"];
+const ACCEPT =
+  ".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.md,.csv,application/pdf,text/plain,text/markdown,text/csv";
+
 function Documents({ company }: { company: Company }) {
   const { repo } = useRepo();
   const docs = useDocuments(company.id);
   const upload = useUploadDocument(company.id);
   const summarize = useSummarizeDocument(company.id);
   const input = useRef<HTMLInputElement>(null);
+  const [docType, setDocType] = useState<DocType>("analysis");
+  const [filter, setFilter] = useState<DocType | "all">("all");
+  const [dragging, setDragging] = useState(false);
 
-  const onFile = (f: File | undefined) => {
-    if (!f) return;
-    if (f.type !== "application/pdf" && !f.name.toLowerCase().endsWith(".pdf")) {
-      toast.error("Please choose a PDF");
-      return;
+  const onFiles = (list: FileList | null | undefined) => {
+    for (const f of Array.from(list ?? [])) {
+      if (f.size > 25 * 1024 * 1024) {
+        toast.error(`${f.name} is over 25 MB`);
+        continue;
+      }
+      const readable = canSummarize(f.type, f.name);
+      const t = toast.loading(`Uploading ${f.name}…`, {
+        description: readable ? "Claude will read it and write a summary." : undefined,
+      });
+      upload.mutate(
+        { file: f, docType },
+        {
+          onSuccess: () =>
+            toast.success(readable ? `${f.name} uploaded and summarised` : `${f.name} uploaded`, {
+              id: t,
+            }),
+          onError: (e) =>
+            toast.error(`Couldn't upload ${f.name}`, { id: t, description: e.message }),
+        },
+      );
     }
-    if (f.size > 25 * 1024 * 1024) {
-      toast.error("PDFs must be under 25 MB");
-      return;
-    }
-    const t = toast.loading(`Uploading ${f.name}…`, {
-      description: "Claude will read it and fill in the summary.",
-    });
-    upload.mutate(f, {
-      onSuccess: () => toast.success("Memo read and summarised", { id: t }),
-      onError: (e) => toast.error("Couldn't process the PDF", { id: t, description: e.message }),
-    });
   };
 
   const open = async (d: CompanyDocument) => {
@@ -326,52 +346,123 @@ function Documents({ company }: { company: Company }) {
     }
   };
 
+  const all = docs.data ?? [];
+  const types = [...new Set(all.map((d) => (d.docType ?? "other") as DocType))];
+  const shown = filter === "all" ? all : all.filter((d) => (d.docType ?? "other") === filter);
+
   return (
-    <Section
-      title="IC memos & documents"
-      right={
-        <PillButton
-          variant="outline"
-          className="py-1.5"
+    <Section title="Analysis, notes & memos">
+      {/* Upload */}
+      <div
+        onDragOver={(e) => {
+          e.preventDefault();
+          setDragging(true);
+        }}
+        onDragLeave={() => setDragging(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setDragging(false);
+          onFiles(e.dataTransfer.files);
+        }}
+        className={cn(
+          "rounded-sm border border-dashed px-4 py-4 transition-colors",
+          dragging ? "border-ink bg-paper-2" : "border-line",
+        )}
+      >
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-[13px] text-ink-3">Upload as</span>
+          {UPLOAD_TYPES.map((t) => (
+            <button
+              key={t}
+              type="button"
+              onClick={() => setDocType(t)}
+              className={cn(
+                "rounded-sm border px-2.5 py-1 text-[13px] transition-colors",
+                docType === t
+                  ? "border-ink bg-ink text-paper"
+                  : "border-line text-ink-2 hover:text-ink",
+              )}
+            >
+              {DOC_TYPE_LABEL[t]}
+            </button>
+          ))}
+        </div>
+        <button
+          type="button"
           onClick={() => input.current?.click()}
           disabled={upload.isPending}
+          className="mt-3 flex w-full items-center justify-center gap-2 rounded-sm bg-paper-2 px-4 py-3 text-[14px] font-medium transition-colors hover:bg-line disabled:opacity-60"
         >
           {upload.isPending ? (
-            <Loader2 className="size-3.5 animate-spin" aria-hidden />
+            <Loader2 className="size-4 animate-spin" aria-hidden />
           ) : (
-            <Upload className="size-3.5" aria-hidden />
+            <Upload className="size-4" aria-hidden />
           )}
-          Upload PDF
-        </PillButton>
-      }
-    >
+          Choose files or drop them here
+        </button>
+        <p className="mt-2 text-[12px] text-ink-3">
+          PDF, Word, Excel, PowerPoint or text, up to 25 MB each. Claude summarises PDFs and text
+          files and fills any empty thesis, risks and metrics.
+        </p>
+      </div>
       <input
         ref={input}
         type="file"
-        accept="application/pdf,.pdf"
+        accept={ACCEPT}
+        multiple
         className="hidden"
         onChange={(e) => {
-          onFile(e.target.files?.[0]);
+          onFiles(e.target.files);
           e.target.value = "";
         }}
       />
-      <ul className="space-y-3">
-        {(docs.data ?? []).map((d) => (
-          <li key={d.id} className="rounded-2xl border border-line bg-paper p-4">
+
+      {/* Filter */}
+      {types.length > 1 && (
+        <div className="mt-5 flex flex-wrap gap-4 text-[13px]">
+          {(["all", ...types] as const).map((t) => (
+            <button
+              key={t}
+              type="button"
+              onClick={() => setFilter(t)}
+              className={cn(
+                "border-b-2 py-0.5",
+                filter === t
+                  ? "border-ink font-medium text-ink"
+                  : "border-transparent text-ink-3 hover:text-ink",
+              )}
+            >
+              {t === "all" ? `All (${all.length})` : DOC_TYPE_LABEL[t]}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* List */}
+      <ul className="mt-4 space-y-3">
+        {shown.map((d) => (
+          <li key={d.id} className="rounded-sm border border-line p-4">
             <div className="flex items-start gap-3">
-              <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-ink text-paper">
+              <span className="grid size-9 shrink-0 place-items-center rounded-sm bg-ink text-paper">
                 <FileText className="size-4" aria-hidden />
               </span>
               <div className="min-w-0 flex-1">
                 <button
                   type="button"
                   onClick={() => void open(d)}
-                  className="text-left font-medium hover:underline"
+                  className="inline-flex max-w-full items-center gap-1.5 text-left font-medium hover:underline"
                 >
-                  {d.title}
+                  <span className="truncate">{d.title}</span>
+                  {d.externalUrl && (
+                    <ExternalLink className="size-3.5 shrink-0 text-ink-3" aria-hidden />
+                  )}
                 </button>
-                <div className="text-[12px] text-ink-3">
-                  {format(new Date(d.uploadedAt), "d MMM yyyy")}
+                <div className="flex flex-wrap items-center gap-x-2 text-[12px] text-ink-3">
+                  <span className="rounded-sm bg-paper-2 px-1.5 py-0.5 text-ink-2">
+                    {DOC_TYPE_LABEL[(d.docType ?? "other") as DocType] ?? "Other"}
+                  </span>
+                  <span>{format(new Date(d.uploadedAt), "d MMM yyyy")}</span>
+                  {d.externalUrl?.includes("drive.google.com") && <span>· Google Drive</span>}
                 </div>
               </div>
             </div>
@@ -390,7 +481,7 @@ function Documents({ company }: { company: Company }) {
                   </p>
                 )}
               </div>
-            ) : (
+            ) : canSummarize(d.mimeType, d.title) || (!d.mimeType && !d.externalUrl) ? (
               <div className="mt-3 flex items-center gap-2 text-[13px] text-ink-3">
                 {upload.isPending || summarize.isPending ? (
                   <>
@@ -411,24 +502,10 @@ function Documents({ company }: { company: Company }) {
                   </button>
                 )}
               </div>
-            )}
+            ) : null}
           </li>
         ))}
-        {docs.data?.length === 0 && (
-          <li>
-            <button
-              type="button"
-              onClick={() => input.current?.click()}
-              className="flex w-full flex-col items-center rounded-2xl border border-dashed border-line px-6 py-8 text-center transition-colors hover:bg-paper-2"
-            >
-              <Upload className="size-5 text-ink-2" aria-hidden />
-              <span className="mt-2 text-[15px] font-medium">Upload an IC memo or deck (PDF)</span>
-              <span className="mt-0.5 text-[13px] text-ink-3">
-                Claude reads it, summarises it and fills in any empty thesis, risks and metrics
-              </span>
-            </button>
-          </li>
-        )}
+        {docs.data?.length === 0 && <li className="text-[14px] text-ink-3">No documents yet.</li>}
       </ul>
     </Section>
   );

@@ -270,15 +270,14 @@ const DOCS: CompanyDocument[] = [
     keyTakeaways:
       "• ARR USD 6.2m (Q2 2026), NRR 138%\n• Payback <9 months for customers\n• Gross margin 41% (FY25), target 50%\n• Second gripper supplier by Q1 2027\n• Pricing power from retrofit, not greenfield",
     uploadedAt: daysAgo(20),
+    externalUrl: null,
+    mimeType: "application/pdf",
   },
 ];
 
 export function createDemoRepo(): Repo {
   const holdings = {
-    india: [
-      ...seedHoldings(INDIA_EQ, "kite", "INR", "NSE"),
-      ...seedHoldings(INDIA_MF, "kite_mf", "INR", "MF"),
-    ],
+    india: [...seedHoldings(INDIA_EQ, "kite", "INR", "NSE")],
     revolut: seedHoldings(REVOLUT, "revolut", "USD", "US"),
   };
   const snapshots = {
@@ -327,7 +326,7 @@ export function createDemoRepo(): Repo {
       return {
         status: "ok",
         equityCount: INDIA_EQ.length,
-        mfCount: INDIA_MF.length,
+        mfCount: 0,
         syncedAt: new Date().toISOString(),
       };
     },
@@ -397,17 +396,19 @@ export function createDemoRepo(): Repo {
       await wait(150);
       return structuredClone(docs.filter((d) => d.companyId === companyId));
     },
-    async uploadDocument(companyId, file) {
+    async uploadDocument(companyId, file, docType) {
       await wait(500);
       const doc: CompanyDocument = {
         id: uid(),
         companyId,
-        title: file.name.replace(/\.pdf$/i, ""),
-        docType: "memo",
+        title: file.name.replace(/\.[a-z0-9]+$/i, ""),
+        docType,
         storagePath: "demo",
         summary: null,
         keyTakeaways: null,
         uploadedAt: new Date().toISOString(),
+        externalUrl: null,
+        mimeType: file.type || null,
       };
       files.set(doc.id, URL.createObjectURL(file));
       docs = [doc, ...docs];

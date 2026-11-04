@@ -22,8 +22,7 @@ export default function KiteCallback() {
     }
     sync.mutate(token, {
       onSuccess: (r) => {
-        if (r.status === "ok")
-          toast.success(`Kite connected · ${r.equityCount} stocks, ${r.mfCount} funds synced`);
+        if (r.status === "ok") toast.success(`Kite connected · ${r.equityCount} stocks synced`);
         navigate("/app/india", { replace: true });
       },
       onError: (e) => setError(e.message),

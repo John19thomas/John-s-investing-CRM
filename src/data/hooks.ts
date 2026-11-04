@@ -1,6 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRepo } from "./RepoContext";
-import type { CompanyInput, PortfolioScope, Region, TradeImport } from "./types";
+import {
+  canSummarize,
+  type CompanyInput,
+  type DocType,
+  type PortfolioScope,
+  type Region,
+  type TradeImport,
+} from "./types";
 
 // Query keys are namespaced by mode so demo data never mixes with live data.
 export function useHoldings(scope: PortfolioScope) {
@@ -89,10 +96,10 @@ export function useUploadDocument(companyId: string) {
   const { repo } = useRepo();
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (file: File) => {
-      const doc = await repo.uploadDocument(companyId, file);
+    mutationFn: async ({ file, docType }: { file: File; docType: DocType }) => {
+      const doc = await repo.uploadDocument(companyId, file, docType);
       qc.invalidateQueries({ queryKey: [repo.mode, "documents", companyId] });
-      return repo.summarizeDocument(doc.id);
+      return canSummarize(file.type, file.name) ? repo.summarizeDocument(doc.id) : doc;
     },
     onSettled: () => {
       qc.invalidateQueries({ queryKey: [repo.mode, "documents", companyId] });

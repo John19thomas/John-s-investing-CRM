@@ -8,7 +8,7 @@ import { Wordmark } from "./Wordmark";
 const TABS = [
   { to: "india", label: "India equities", short: "India", icon: IndianRupee },
   { to: "revolut", label: "Global equities", short: "Global", icon: Globe2 },
-  { to: "private", label: "Private investments", short: "Private", icon: Building2 },
+  { to: "private", label: "Private company tracker", short: "Private", icon: Building2 },
 ] as const;
 
 export default function AppShell() {

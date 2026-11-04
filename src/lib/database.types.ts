@@ -82,6 +82,8 @@ export type DocumentRow = {
   title: string;
   uploaded_at: string;
   user_id: string;
+  external_url: string | null;
+  mime_type: string | null;
 };
 
 export type ProfileRow = {
@@ -210,7 +212,15 @@ export type Database = {
         DocumentRow,
         WithOptional<
           DocumentRow,
-          "id" | "uploaded_at" | "user_id" | "company_id" | "doc_type" | "key_takeaways" | "summary"
+          | "id"
+          | "uploaded_at"
+          | "user_id"
+          | "company_id"
+          | "doc_type"
+          | "key_takeaways"
+          | "summary"
+          | "external_url"
+          | "mime_type"
         >
       >;
     };

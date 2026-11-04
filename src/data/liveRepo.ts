@@ -30,7 +30,7 @@ import type {
 const BUCKET = "private-docs";
 
 const SOURCES: Record<"india" | "revolut", HoldingSource[]> = {
-  india: ["kite", "kite_mf"],
+  india: ["kite"],
   revolut: ["revolut"],
 };
 
@@ -100,6 +100,8 @@ const toDoc = (r: DocumentRow): CompanyDocument => ({
   summary: r.summary,
   keyTakeaways: r.key_takeaways,
   uploadedAt: r.uploaded_at,
+  externalUrl: r.external_url,
+  mimeType: r.mime_type,
 });
 
 function check<T>(res: { data: T; error: { message: string } | null }): NonNullable<T> {
@@ -303,7 +305,8 @@ export const liveRepo: Repo = {
     const docs = check(
       await supabase.from("private_documents").select("storage_path").eq("company_id", id),
     );
-    if (docs.length) await supabase.storage.from(BUCKET).remove(docs.map((d) => d.storage_path));
+    const stored = docs.map((d) => d.storage_path).filter((p) => p && !p.startsWith("drive:"));
+    if (stored.length) await supabase.storage.from(BUCKET).remove(stored);
     ok(await supabase.from("private_documents").delete().eq("company_id", id));
     ok(await supabase.from("private_companies").delete().eq("id", id));
   },
@@ -349,22 +352,23 @@ export const liveRepo: Repo = {
     return rows.map(toDoc);
   },
 
-  async uploadDocument(companyId, file) {
+  async uploadDocument(companyId, file, docType) {
     const uid = await userId();
     const safe = file.name.replace(/[^\w.-]+/g, "_");
     const path = `${uid}/${companyId}/${Date.now()}-${safe}`;
     const up = await supabase.storage
       .from(BUCKET)
-      .upload(path, file, { contentType: file.type || "application/pdf", upsert: false });
+      .upload(path, file, { contentType: file.type || "application/octet-stream", upsert: false });
     if (up.error) throw new Error(up.error.message);
     const row = check(
       await supabase
         .from("private_documents")
         .insert({
           company_id: companyId,
-          title: file.name.replace(/\.pdf$/i, ""),
+          title: file.name.replace(/\.[a-z0-9]+$/i, ""),
           storage_path: path,
-          doc_type: "memo",
+          doc_type: docType,
+          mime_type: file.type || null,
         })
         .select("*")
         .single(),
@@ -379,6 +383,7 @@ export const liveRepo: Repo = {
   },
 
   async documentUrl(doc) {
+    if (doc.externalUrl) return doc.externalUrl;
     const { data, error } = await supabase.storage
       .from(BUCKET)
       .createSignedUrl(doc.storagePath, 60 * 10);

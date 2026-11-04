@@ -46,8 +46,8 @@ export default function PrivatePage() {
     <div className="space-y-6 pb-16">
       <PageHeader
         eyebrow="03 / Private"
-        title="Private investments"
-        description="Companies invested in or under review. Add notes and PDF documents to each company; Claude summarises the documents."
+        title="Private company tracker"
+        description="Private companies you have invested in or are tracking. Upload analysis, notes and memos to each one; Claude summarises PDFs and text files."
         actions={
           <PillButton onClick={() => setAdding(true)}>
             <Plus className="size-4" aria-hidden /> Add company
