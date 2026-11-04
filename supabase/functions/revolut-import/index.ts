@@ -13,7 +13,10 @@ const cors = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 const json = (b: unknown, s = 200) =>
-  new Response(JSON.stringify(b), { status: s, headers: { ...cors, "Content-Type": "application/json" } });
+  new Response(JSON.stringify(b), {
+    status: s,
+    headers: { ...cors, "Content-Type": "application/json" },
+  });
 
 const MAX_CSV_BYTES = 5 * 1024 * 1024;
 
@@ -67,9 +70,32 @@ Deno.serve(async (req) => {
   }));
 
   const del = await db.from("holdings").delete().eq("user_id", user.id).eq("source", "revolut");
-  if (del.error) return json({ error: "Couldn't clear old Revolut holdings", detail: del.error.message }, 500);
+  if (del.error)
+    return json({ error: "Couldn't clear old Revolut holdings", detail: del.error.message }, 500);
   const ins = await db.from("holdings").insert(rows);
-  if (ins.error) return json({ error: "Saving Revolut holdings failed", detail: ins.error.message }, 500);
+  if (ins.error)
+    return json({ error: "Saving Revolut holdings failed", detail: ins.error.message }, 500);
+
+  // Record one point per day for the value chart, in the currency holding most of the cost basis.
+  const byCcy = new Map<string, { invested: number; current: number }>();
+  for (const p of parsed.positions) {
+    const t = byCcy.get(p.currency) ?? { invested: 0, current: 0 };
+    t.invested += p.avg_price * p.quantity;
+    t.current += (p.last_price ?? p.avg_price) * p.quantity;
+    byCcy.set(p.currency, t);
+  }
+  const [ccy, totals] = [...byCcy.entries()].sort((a, b) => b[1].invested - a[1].invested)[0]!;
+  await db.from("portfolio_snapshots").upsert(
+    {
+      user_id: user.id,
+      snapshot_date: now.slice(0, 10),
+      source: "revolut",
+      invested_value: totals.invested,
+      current_value: totals.current,
+      currency: ccy,
+    },
+    { onConflict: "user_id,snapshot_date,source" },
+  );
 
   return json({ ...parsed, committed: true, saved: rows.length, imported_at: now });
 });

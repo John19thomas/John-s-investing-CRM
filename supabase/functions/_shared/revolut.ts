@@ -32,7 +32,7 @@ export function parseCsv(text: string): string[][] {
   let row: string[] = [];
   let field = "";
   let inQuotes = false;
-  const src = text.replace(/^﻿/, "");
+  const src = text.replace(/^\uFEFF/, "");
   for (let i = 0; i < src.length; i++) {
     const c = src[i];
     if (inQuotes) {
@@ -64,7 +64,10 @@ export function parseCsv(text: string): string[][] {
 const CURRENCY_SYMBOLS: Record<string, string> = { $: "USD", "€": "EUR", "£": "GBP", "₹": "INR" };
 
 /** Parses "USD 1,234.56", "$1,234.56", "-12.5", "1 234,56"? (comma decimals not supported). */
-export function parseMoney(raw: string | undefined): { value: number | null; currency: string | null } {
+export function parseMoney(raw: string | undefined): {
+  value: number | null;
+  currency: string | null;
+} {
   if (raw == null) return { value: null, currency: null };
   let s = raw.trim();
   if (!s) return { value: null, currency: null };
@@ -106,14 +109,22 @@ export function parseRevolutCsv(text: string): RevolutParseResult {
     type: findCol(headers, ["Type", "Transaction type"]),
     qty: findCol(headers, ["Quantity", "Shares", "Qty"]),
     price: findCol(headers, ["Price per share", "Price"]),
-    avg: findCol(headers, ["Average price", "Avg price", "Average cost", "Avg cost", "Cost per share"]),
+    avg: findCol(headers, [
+      "Average price",
+      "Avg price",
+      "Average cost",
+      "Avg cost",
+      "Cost per share",
+    ]),
     last: findCol(headers, ["Current price", "Last price", "Market price"]),
     currency: findCol(headers, ["Currency", "Ccy"]),
     name: findCol(headers, ["Name", "Company", "Instrument name"]),
     date: findCol(headers, ["Date", "Time", "Completed Date"]),
   };
-  if (col.ticker < 0) throw new Error(`Couldn't find a Ticker/Symbol column. Columns found: ${headers.join(", ")}`);
-  if (col.qty < 0) throw new Error(`Couldn't find a Quantity/Shares column. Columns found: ${headers.join(", ")}`);
+  if (col.ticker < 0)
+    throw new Error(`Couldn't find a Ticker/Symbol column. Columns found: ${headers.join(", ")}`);
+  if (col.qty < 0)
+    throw new Error(`Couldn't find a Quantity/Shares column. Columns found: ${headers.join(", ")}`);
 
   const cell = (r: string[], i: number) => (i >= 0 ? (r[i] ?? "").trim() : "");
   const warnings: string[] = [];
@@ -127,7 +138,9 @@ export function parseRevolutCsv(text: string): RevolutParseResult {
     const book = new Map<string, Pos>();
     const ordered = body
       .map((r, idx) => ({ r, idx, t: Date.parse(cell(r, col.date)) }))
-      .sort((a, b) => (Number.isNaN(a.t) || Number.isNaN(b.t) ? a.idx - b.idx : a.t - b.t || a.idx - b.idx));
+      .sort((a, b) =>
+        Number.isNaN(a.t) || Number.isNaN(b.t) ? a.idx - b.idx : a.t - b.t || a.idx - b.idx,
+      );
 
     for (const { r, idx } of ordered) {
       const ticker = cell(r, col.ticker).toUpperCase();
@@ -153,7 +166,9 @@ export function parseRevolutCsv(text: string): RevolutParseResult {
         }
         const q = Math.min(Math.abs(qty), pos.qty);
         if (Math.abs(qty) - pos.qty > 1e-6)
-          warnings.push(`Row ${idx + 2}: ${ticker} sells more shares than were bought in this file (statement may be partial).`);
+          warnings.push(
+            `Row ${idx + 2}: ${ticker} sells more shares than were bought in this file (statement may be partial).`,
+          );
         const avg = pos.qty > EPSILON ? pos.cost / pos.qty : 0;
         pos.qty -= q;
         pos.cost -= avg * q;

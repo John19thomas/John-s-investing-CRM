@@ -10,7 +10,11 @@ const cors = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
-const json = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: s, headers: { ...cors, "Content-Type": "application/json" } });
+const json = (b: unknown, s = 200) =>
+  new Response(JSON.stringify(b), {
+    status: s,
+    headers: { ...cors, "Content-Type": "application/json" },
+  });
 
 const SYSTEM = `You are the analyst built into John's Investing Dashboard, a read-only personal portfolio app.
 Answer using the PORTFOLIO DATA provided. Style: IC-grade, metrics-first, concise. Lead with the answer, then the numbers.
@@ -29,25 +33,64 @@ Deno.serve(async (req) => {
   const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, {
     global: { headers: { Authorization: req.headers.get("Authorization") ?? "" } },
   });
-  const { data: { user } } = await db.auth.getUser();
+  const {
+    data: { user },
+  } = await db.auth.getUser();
   if (!user) return json({ error: "Not signed in" }, 401);
 
   let body: { message?: string; conversation_id?: string } = {};
-  try { body = await req.json(); } catch { /* */ }
+  try {
+    body = await req.json();
+  } catch {
+    /* */
+  }
   const message = (body.message ?? "").trim();
   if (!message) return json({ error: "Empty message" }, 400);
   const conversation_id = body.conversation_id ?? crypto.randomUUID();
 
-  const [holdings, financials, announcements, analyses, earnings, companies, docs, history] = await Promise.all([
-    db.from("holdings").select("source,symbol,exchange,name,quantity,avg_price,last_price,day_change_pct,pnl,currency,sector,snapshot_at"),
-    db.from("financials").select("symbol,period_label,period_end,period_type,is_estimate,currency,unit,revenue,gross_margin_pct,ebitda,ebitda_margin_pct,free_cash_flow,revenue_yoy_pct,ebitda_yoy_pct,notes,source_url").order("period_end", { ascending: false }).limit(200),
-    db.from("announcements").select("symbol,announced_on,category,title,summary,importance,source_url").order("announced_on", { ascending: false }).limit(60),
-    db.from("analyses").select("symbol,kind,title,summary,created_at").order("created_at", { ascending: false }).limit(25),
-    db.from("earnings_events").select("symbol,event_date,fiscal_period,status").gte("event_date", new Date(Date.now() - 30 * 864e5).toISOString().slice(0, 10)).order("event_date").limit(50),
-    db.from("private_companies").select("id,name,sector,stage,status,context,thesis,key_risks,key_metrics,last_valuation,valuation_currency"),
-    db.from("private_documents").select("company_id,title,doc_type,summary,key_takeaways"),
-    db.from("chat_messages").select("role,content").eq("conversation_id", conversation_id).order("created_at").limit(20),
-  ]);
+  const [holdings, financials, announcements, analyses, earnings, companies, docs, history] =
+    await Promise.all([
+      db
+        .from("holdings")
+        .select(
+          "source,symbol,exchange,name,quantity,avg_price,last_price,day_change_pct,pnl,currency,sector,snapshot_at",
+        ),
+      db
+        .from("financials")
+        .select(
+          "symbol,period_label,period_end,period_type,is_estimate,currency,unit,revenue,gross_margin_pct,ebitda,ebitda_margin_pct,free_cash_flow,revenue_yoy_pct,ebitda_yoy_pct,notes,source_url",
+        )
+        .order("period_end", { ascending: false })
+        .limit(200),
+      db
+        .from("announcements")
+        .select("symbol,announced_on,category,title,summary,importance,source_url")
+        .order("announced_on", { ascending: false })
+        .limit(60),
+      db
+        .from("analyses")
+        .select("symbol,kind,title,summary,created_at")
+        .order("created_at", { ascending: false })
+        .limit(25),
+      db
+        .from("earnings_events")
+        .select("symbol,event_date,fiscal_period,status")
+        .gte("event_date", new Date(Date.now() - 30 * 864e5).toISOString().slice(0, 10))
+        .order("event_date")
+        .limit(50),
+      db
+        .from("private_companies")
+        .select(
+          "id,name,sector,stage,status,context,thesis,key_risks,key_metrics,last_valuation,valuation_currency",
+        ),
+      db.from("private_documents").select("company_id,title,doc_type,summary,key_takeaways"),
+      db
+        .from("chat_messages")
+        .select("role,content")
+        .eq("conversation_id", conversation_id)
+        .order("created_at")
+        .limit(20),
+    ]);
 
   const context = {
     today: new Date().toISOString().slice(0, 10),
@@ -67,7 +110,11 @@ Deno.serve(async (req) => {
 
   const r = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
-    headers: { "x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json" },
+    headers: {
+      "x-api-key": key,
+      "anthropic-version": "2023-06-01",
+      "content-type": "application/json",
+    },
     body: JSON.stringify({
       model: Deno.env.get("CHAT_MODEL") ?? "claude-sonnet-5-5",
       max_tokens: 1500,
@@ -80,7 +127,10 @@ Deno.serve(async (req) => {
   });
   const out = await r.json();
   if (!r.ok) return json({ error: "Claude API error", detail: out?.error?.message }, 502);
-  const reply = (out.content ?? []).filter((c: any) => c.type === "text").map((c: any) => c.text).join("\n");
+  const reply = (out.content ?? [])
+    .filter((c: any) => c.type === "text")
+    .map((c: any) => c.text)
+    .join("\n");
 
   await db.from("chat_messages").insert([
     { user_id: user.id, conversation_id, role: "user", content: message },

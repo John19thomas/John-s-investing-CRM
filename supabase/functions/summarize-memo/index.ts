@@ -16,7 +16,10 @@ const cors = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 const json = (b: unknown, s = 200) =>
-  new Response(JSON.stringify(b), { status: s, headers: { ...cors, "Content-Type": "application/json" } });
+  new Response(JSON.stringify(b), {
+    status: s,
+    headers: { ...cors, "Content-Type": "application/json" },
+  });
 
 const MAX_PDF_BYTES = 25 * 1024 * 1024;
 
@@ -30,7 +33,11 @@ const SCHEMA = {
   required: ["summary", "key_takeaways", "thesis", "key_risks", "key_metrics", "doc_type"],
   properties: {
     summary: { type: "string", description: "3-5 sentence summary of the document." },
-    key_takeaways: { type: "array", items: { type: "string" }, description: "5-8 bullet takeaways." },
+    key_takeaways: {
+      type: "array",
+      items: { type: "string" },
+      description: "5-8 bullet takeaways.",
+    },
     thesis: { type: "string", description: "The investment thesis as argued in the document." },
     key_risks: { type: "array", items: { type: "string" } },
     key_metrics: {
@@ -42,7 +49,10 @@ const SCHEMA = {
         properties: {
           name: { type: "string" },
           value: { type: "string", description: "Value with currency/unit, e.g. 'USD 12.4m'." },
-          period: { type: "string", description: "e.g. 'FY24', 'Q2 2025', 'as of Mar 2025', or ''." },
+          period: {
+            type: "string",
+            description: "e.g. 'FY24', 'Q2 2025', 'as of Mar 2025', or ''.",
+          },
         },
       },
     },
@@ -62,7 +72,8 @@ type Extract = {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (req.method !== "POST") return json({ error: "POST only" }, 405);
-  if (!Deno.env.get("ANTHROPIC_API_KEY")) return json({ error: "ANTHROPIC_API_KEY secret not set" }, 500);
+  if (!Deno.env.get("ANTHROPIC_API_KEY"))
+    return json({ error: "ANTHROPIC_API_KEY secret not set" }, 500);
 
   const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, {
     global: { headers: { Authorization: req.headers.get("Authorization") ?? "" } },
@@ -87,11 +98,15 @@ Deno.serve(async (req) => {
     .maybeSingle();
   if (docErr || !doc) return json({ error: "Document not found" }, 404);
 
-  const { data: file, error: dlErr } = await db.storage.from("private-docs").download(doc.storage_path);
-  if (dlErr || !file) return json({ error: "Couldn't download the file", detail: dlErr?.message }, 404);
+  const { data: file, error: dlErr } = await db.storage
+    .from("private-docs")
+    .download(doc.storage_path);
+  if (dlErr || !file)
+    return json({ error: "Couldn't download the file", detail: dlErr?.message }, 404);
   if (file.size > MAX_PDF_BYTES) return json({ error: "PDF is larger than 25 MB" }, 413);
   const bytes = new Uint8Array(await file.arrayBuffer());
-  if (new TextDecoder().decode(bytes.slice(0, 5)) !== "%PDF-") return json({ error: "File is not a PDF" }, 415);
+  if (new TextDecoder().decode(bytes.slice(0, 5)) !== "%PDF-")
+    return json({ error: "File is not a PDF" }, 415);
 
   const { data: company } = await db
     .from("private_companies")
@@ -127,27 +142,37 @@ Deno.serve(async (req) => {
       ],
     });
     const msg = await stream.finalMessage();
-    if (msg.stop_reason === "refusal") return json({ error: "Claude declined to read this document" }, 422);
-    if (msg.stop_reason === "max_tokens") return json({ error: "Response was cut off; try a shorter document" }, 502);
+    if (msg.stop_reason === "refusal")
+      return json({ error: "Claude declined to read this document" }, 422);
+    if (msg.stop_reason === "max_tokens")
+      return json({ error: "Response was cut off; try a shorter document" }, 502);
     const text = msg.content.flatMap((b) => (b.type === "text" ? [b.text] : [])).join("");
     extract = JSON.parse(text) as Extract;
   } catch (e) {
-    if (e instanceof Anthropic.RateLimitError) return json({ error: "Claude is rate limited, try again shortly" }, 429);
-    if (e instanceof Anthropic.APIError) return json({ error: "Claude API error", detail: e.message }, 502);
+    if (e instanceof Anthropic.RateLimitError)
+      return json({ error: "Claude is rate limited, try again shortly" }, 429);
+    if (e instanceof Anthropic.APIError)
+      return json({ error: "Claude API error", detail: e.message }, 502);
     return json({ error: "Couldn't read the document", detail: (e as Error).message }, 500);
   }
 
   const bullets = (xs: string[]) => xs.map((x) => `• ${x}`).join("\n");
   const upd = await db
     .from("private_documents")
-    .update({ summary: extract.summary, key_takeaways: bullets(extract.key_takeaways), doc_type: extract.doc_type })
+    .update({
+      summary: extract.summary,
+      key_takeaways: bullets(extract.key_takeaways),
+      doc_type: extract.doc_type,
+    })
     .eq("id", doc.id);
-  if (upd.error) return json({ error: "Saving the summary failed", detail: upd.error.message }, 500);
+  if (upd.error)
+    return json({ error: "Saving the summary failed", detail: upd.error.message }, 500);
 
   const companyUpdates: Record<string, unknown> = {};
   if (body.apply_to_company && company) {
     if (!company.thesis?.trim() && extract.thesis) companyUpdates.thesis = extract.thesis;
-    if (!company.key_risks?.trim() && extract.key_risks.length) companyUpdates.key_risks = bullets(extract.key_risks);
+    if (!company.key_risks?.trim() && extract.key_risks.length)
+      companyUpdates.key_risks = bullets(extract.key_risks);
     const hasMetrics = company.key_metrics && Object.keys(company.key_metrics).length > 0;
     if (!hasMetrics && extract.key_metrics.length) {
       companyUpdates.key_metrics = Object.fromEntries(
@@ -156,9 +181,15 @@ Deno.serve(async (req) => {
     }
     if (Object.keys(companyUpdates).length) {
       const cu = await db.from("private_companies").update(companyUpdates).eq("id", company.id);
-      if (cu.error) return json({ error: "Saving company fields failed", detail: cu.error.message }, 500);
+      if (cu.error)
+        return json({ error: "Saving company fields failed", detail: cu.error.message }, 500);
     }
   }
 
-  return json({ ok: true, document_id: doc.id, ...extract, company_fields_filled: Object.keys(companyUpdates) });
+  return json({
+    ok: true,
+    document_id: doc.id,
+    ...extract,
+    company_fields_filled: Object.keys(companyUpdates),
+  });
 });
