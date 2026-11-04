@@ -15,6 +15,7 @@ import {
 import { SegmentedBar } from "@/components/charts/SegmentedBar";
 import { ValueChart } from "@/components/charts/ValueChart";
 import { WeightBars } from "@/components/charts/WeightBars";
+import { CoverageNotice } from "@/components/holdings/CoverageNotice";
 import { PortfolioSection } from "@/components/holdings/PortfolioSection";
 import { bookXirr, statsBySymbol } from "@/components/holdings/positions";
 import { primaryCurrency, summarize } from "@/components/holdings/summary";
@@ -141,7 +142,23 @@ export default function RevolutPage() {
             </div>
           </Card>
 
-          <PortfolioSection title="Companies" holdings={all} stats={stats} showDay={false} />
+          <PortfolioSection
+            title="Companies"
+            holdings={all}
+            stats={stats}
+            showDay={false}
+            bookXirr={book.xirr}
+            notice={
+              <CoverageNotice
+                holdings={all}
+                txns={txns.data ?? []}
+                stats={stats}
+                hint="Re-import a Revolut statement that starts from your first trade."
+                onImport={() => setOpen(true)}
+                importLabel="Import statement"
+              />
+            }
+          />
 
           <div className="grid gap-6 lg:grid-cols-3">
             <Card className="lg:col-span-2">

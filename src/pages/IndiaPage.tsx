@@ -16,6 +16,7 @@ import {
 } from "@/components/app/primitives";
 import { ValueChart } from "@/components/charts/ValueChart";
 import { WeightBars } from "@/components/charts/WeightBars";
+import { CoverageNotice } from "@/components/holdings/CoverageNotice";
 import { PortfolioSection } from "@/components/holdings/PortfolioSection";
 import { bookXirr, statsBySymbol } from "@/components/holdings/positions";
 import { summarize } from "@/components/holdings/summary";
@@ -156,6 +157,17 @@ export default function IndiaPage() {
             title="Companies"
             holdings={visible}
             stats={stats}
+            bookXirr={book.xirr}
+            notice={
+              <CoverageNotice
+                holdings={visible}
+                txns={txns.data ?? []}
+                stats={stats}
+                hint="Download a tradebook for each earlier year from Zerodha Console (Reports → Tradebook) and import them all; duplicates are skipped."
+                onImport={() => setTradebookOpen(true)}
+                importLabel="Import older tradebooks"
+              />
+            }
             controls={
               <>
                 <button

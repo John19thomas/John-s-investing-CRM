@@ -1,4 +1,6 @@
 import type { PositionStats } from "@shared/performance";
+import { formatHoldingPeriod } from "@shared/performance";
+import { format, parseISO } from "date-fns";
 import { ArrowDown, ArrowUp } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router";
@@ -12,46 +14,54 @@ import {
   type CompanyProfile,
   type Holding,
 } from "@/data/types";
-import { CompanyLogo } from "./CompanyLogo";
-import { money, pct, qty, signedMoney } from "@/lib/format";
+import { moneyCompact, money, pct, qty, signedMoney } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { CompanyLogo } from "./CompanyLogo";
+import { xirrInfo } from "./positions";
 
-type Key =
-  "symbol" | "quantity" | "avg" | "ltp" | "value" | "pnl" | "pnlPct" | "day" | "weight" | "xirr";
+type Key = "name" | "weight" | "value" | "cost" | "ret" | "xirr" | "held" | "entry" | "ltp" | "day";
 
-const getters: Record<Key, (h: Holding) => number | string | null> = {
-  symbol: (h) => h.symbol,
-  quantity: (h) => h.quantity,
-  avg: (h) => h.avgPrice,
-  ltp: (h) => h.lastPrice,
-  value: (h) => marketValue(h) ?? invested(h),
-  pnl: (h) => pnl(h),
-  pnlPct: (h) => pnlPct(h),
-  day: (h) => h.dayChangePct,
-  weight: (h) => marketValue(h) ?? invested(h),
-  xirr: () => null, // replaced per render with the stats lookup
-};
-
+/**
+ * Investment-team book view: one row per company, sortable, with weight, value, return, XIRR,
+ * holding period and entry price. Rows open the company page.
+ */
 export function HoldingsTable({
   holdings,
   showDay = true,
   profiles,
   stats,
+  bookXirr,
 }: {
   holdings: Holding[];
   showDay?: boolean;
   profiles?: Map<string, CompanyProfile>;
   stats?: Map<string, PositionStats>;
+  bookXirr?: number | null;
 }) {
   const navigate = useNavigate();
   const { base } = useRepo();
   const open = (h: Holding) => navigate(`${base}/holding/${encodeURIComponent(h.symbol)}`);
   const [sort, setSort] = useState<{ key: Key; dir: 1 | -1 }>({ key: "value", dir: -1 });
+
   const total = holdings.reduce((a, h) => a + (marketValue(h) ?? invested(h)), 0);
+  const cost = holdings.reduce((a, h) => a + invested(h), 0);
+  const ccy = holdings[0]?.currency ?? "INR";
+  const nameOf = (h: Holding) => profiles?.get(h.symbol)?.name ?? h.name ?? h.symbol;
 
   const rows = useMemo(() => {
-    const g: (h: Holding) => number | string | null =
-      sort.key === "xirr" ? (h) => stats?.get(h.symbol)?.xirr ?? null : getters[sort.key];
+    const get: Record<Key, (h: Holding) => number | string | null> = {
+      name: (h) => nameOf(h),
+      weight: (h) => marketValue(h) ?? invested(h),
+      value: (h) => marketValue(h) ?? invested(h),
+      cost: (h) => invested(h),
+      ret: (h) => pnlPct(h),
+      xirr: (h) => stats?.get(h.symbol)?.xirr ?? null,
+      held: (h) => stats?.get(h.symbol)?.avgHoldingDays ?? null,
+      entry: (h) => h.avgPrice,
+      ltp: (h) => h.lastPrice,
+      day: (h) => h.dayChangePct,
+    };
+    const g = get[sort.key];
     return [...holdings].sort((a, b) => {
       const x = g(a);
       const y = g(b);
@@ -59,14 +69,16 @@ export function HoldingsTable({
       if (y == null) return -1;
       return (typeof x === "string" ? x.localeCompare(String(y)) : x - (y as number)) * sort.dir;
     });
-  }, [holdings, sort, stats]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [holdings, sort, stats, profiles]);
 
-  const th = (key: Key, label: string, align: "left" | "right" = "right") => (
+  const th = (key: Key, label: string, opts: { left?: boolean; className?: string } = {}) => (
     <th
       scope="col"
       className={cn(
-        "px-3 py-3 font-medium first:pl-6 last:pr-6",
-        align === "right" && "text-right",
+        "px-3 py-2.5 font-medium whitespace-nowrap",
+        opts.left ? "text-left" : "text-right",
+        opts.className,
       )}
     >
       <button
@@ -92,133 +104,160 @@ export function HoldingsTable({
 
   return (
     <>
-      {/* Desktop */}
+      {/* Desktop / tablet */}
       <div className="hidden overflow-x-auto md:block">
-        <table className="w-full text-sm">
-          <thead className="border-b border-line text-[12px] text-ink-3">
+        <table className="tabular w-full min-w-[1040px] text-[14px]">
+          <thead className="border-b border-line bg-paper-2 text-[12px] text-ink-3">
             <tr>
-              {th("symbol", "Instrument", "left")}
-              {th("quantity", "Qty")}
-              {th("avg", "Avg cost")}
-              {th("ltp", "Last price")}
-              {th("value", "Value")}
-              {th("pnl", "P&L")}
-              {th("pnlPct", "Return")}
-              {showDay && th("day", "Day")}
-              {stats && th("xirr", "XIRR")}
+              {th("name", "Company", {
+                left: true,
+                className: "sticky left-0 z-10 bg-paper-2 pl-5",
+              })}
               {th("weight", "Weight")}
+              {th("value", "Value")}
+              {th("cost", "Cost")}
+              {th("ret", "Return")}
+              {th("xirr", "XIRR")}
+              {th("held", "Holding")}
+              {th("entry", "Entry price")}
+              {th("ltp", "Last price")}
+              {showDay && th("day", "Today", { className: "pr-5" })}
             </tr>
           </thead>
-          <tbody className="tabular">
+          <tbody>
             {rows.map((h) => {
-              const v = marketValue(h);
-              const p = pnl(h);
-              const w = ((v ?? invested(h)) / total) * 100;
+              const p = profiles?.get(h.symbol);
+              const s = stats?.get(h.symbol);
+              const v = marketValue(h) ?? invested(h);
+              const w = total ? (v / total) * 100 : 0;
+              const x = xirrInfo(s, h.quantity);
               return (
                 <tr
                   key={h.id}
                   onClick={() => open(h)}
-                  className="cursor-pointer border-b border-line/70 transition-colors last:border-0 hover:bg-paper-2/70"
+                  className="group cursor-pointer border-b border-line/70 transition-colors last:border-0 hover:bg-paper-2/60"
                 >
-                  <td className="py-3 pr-3 pl-6">
+                  <td className="sticky left-0 z-10 bg-surface py-2.5 pr-3 pl-5 group-hover:bg-paper-2">
                     <div className="flex items-center gap-3">
-                      <CompanyLogo
-                        name={profiles?.get(h.symbol)?.name ?? h.name ?? h.symbol}
-                        website={profiles?.get(h.symbol)?.website}
-                        size={32}
-                      />
+                      <CompanyLogo name={nameOf(h)} website={p?.website} size={30} />
                       <div className="min-w-0">
-                        <div className="font-semibold tracking-tight">
-                          {h.source === "kite_mf"
-                            ? (profiles?.get(h.symbol)?.name ?? h.name ?? h.symbol)
-                            : h.symbol}
+                        <div className="max-w-[220px] truncate font-medium text-ink">
+                          {nameOf(h)}
                         </div>
                         <div className="max-w-[220px] truncate text-[12px] text-ink-3">
-                          {h.source === "kite_mf"
-                            ? "Mutual fund"
-                            : (profiles?.get(h.symbol)?.name ?? h.name ?? h.exchange ?? "")}
+                          {[h.symbol, p?.sector].filter(Boolean).join(" · ")}
                         </div>
                       </div>
                     </div>
                   </td>
-                  <td className="px-3 text-right">{qty(h.quantity)}</td>
-                  <td className="px-3 text-right text-ink-2">{money(h.avgPrice, h.currency)}</td>
+                  <td className="px-3 text-right">
+                    <div className="flex items-center justify-end gap-2">
+                      <div className="hidden h-1.5 w-12 rounded-full bg-paper-2 lg:block">
+                        <div
+                          className="h-1.5 rounded-full bg-series-1"
+                          style={{ width: `${Math.min(100, w * 4)}%` }}
+                        />
+                      </div>
+                      <span className="w-12">{pct(w, 1, false)}</span>
+                    </div>
+                  </td>
+                  <td className="px-3 text-right font-medium">{moneyCompact(v, h.currency)}</td>
+                  <td className="px-3 text-right text-ink-2">
+                    {moneyCompact(invested(h), h.currency)}
+                  </td>
+                  <td className="px-3 text-right">
+                    <div>
+                      <Delta value={pnlPct(h)}>{pct(pnlPct(h), 1)}</Delta>
+                    </div>
+                    <div className="text-[12px] text-ink-3">
+                      {signedMoney(pnl(h), h.currency, true)}
+                    </div>
+                  </td>
+                  <td className="px-3 text-right">
+                    {x.value != null ? (
+                      <Delta value={x.value} className="font-medium">
+                        {pct(x.value * 100, 1)}
+                      </Delta>
+                    ) : (
+                      <span className="text-[12px] text-ink-3">{x.note}</span>
+                    )}
+                  </td>
+                  <td className="px-3 text-right">
+                    {s?.heldSince ? (
+                      <>
+                        <div>{formatHoldingPeriod(s.avgHoldingDays)}</div>
+                        <div className="text-[12px] text-ink-3">
+                          since {format(parseISO(s.heldSince), "MMM yy")}
+                        </div>
+                      </>
+                    ) : (
+                      <span className="text-ink-3">—</span>
+                    )}
+                  </td>
+                  <td className="px-3 text-right">
+                    <div>{money(h.avgPrice, h.currency)}</div>
+                    <div className="text-[12px] text-ink-3">{qty(h.quantity)} units</div>
+                  </td>
                   <td className="px-3 text-right">{money(h.lastPrice, h.currency)}</td>
-                  <td className="px-3 text-right font-medium">
-                    {money(v ?? invested(h), h.currency, 0)}
-                  </td>
-                  <td className="px-3 text-right">
-                    <Delta value={p}>{signedMoney(p, h.currency, false, 0)}</Delta>
-                  </td>
-                  <td className="px-3 text-right">
-                    <Delta value={pnlPct(h)}>{pct(pnlPct(h), 1)}</Delta>
-                  </td>
                   {showDay && (
-                    <td className="px-3 text-right">
+                    <td className="py-2.5 pr-5 pl-3 text-right">
                       <Delta value={h.dayChangePct}>{pct(h.dayChangePct)}</Delta>
                     </td>
                   )}
-                  {stats && (
-                    <td className="px-3 text-right">
-                      {stats.get(h.symbol)?.xirr != null ? (
-                        <Delta value={stats.get(h.symbol)!.xirr}>
-                          {pct(stats.get(h.symbol)!.xirr! * 100, 1)}
-                        </Delta>
-                      ) : (
-                        <span className="text-ink-3">—</span>
-                      )}
-                    </td>
-                  )}
-                  <td className="py-3 pr-6 pl-3">
-                    <div className="flex items-center justify-end gap-2">
-                      <div className="h-1.5 w-14 rounded-full bg-paper-2">
-                        <div
-                          className="h-1.5 rounded-full bg-series-1"
-                          style={{ width: `${Math.min(100, w * 3)}%` }}
-                        />
-                      </div>
-                      <span className="w-12 text-right text-ink-2">{pct(w, 1, false)}</span>
-                    </div>
-                  </td>
                 </tr>
               );
             })}
           </tbody>
+          <tfoot className="border-t border-ink/20 text-[13px] font-medium">
+            <tr>
+              <td className="sticky left-0 bg-surface py-3 pr-3 pl-5">
+                Total · {holdings.length} holdings
+              </td>
+              <td className="px-3 text-right">100%</td>
+              <td className="px-3 text-right">{moneyCompact(total, ccy)}</td>
+              <td className="px-3 text-right text-ink-2">{moneyCompact(cost, ccy)}</td>
+              <td className="px-3 text-right">
+                <Delta value={total - cost}>
+                  {pct(cost ? ((total - cost) / cost) * 100 : null, 1)}
+                </Delta>
+              </td>
+              <td className="px-3 text-right">
+                {bookXirr != null ? (
+                  <Delta value={bookXirr}>{pct(bookXirr * 100, 1)}</Delta>
+                ) : (
+                  <span className="text-ink-3">—</span>
+                )}
+              </td>
+              <td colSpan={showDay ? 4 : 3} />
+            </tr>
+          </tfoot>
         </table>
       </div>
 
-      {/* Mobile */}
+      {/* Phone */}
       <ul className="divide-y divide-line md:hidden">
         {rows.map((h) => {
-          const v = marketValue(h);
-          const p = pnl(h);
+          const s = stats?.get(h.symbol);
+          const x = xirrInfo(s, h.quantity);
+          const v = marketValue(h) ?? invested(h);
           return (
             <li
               key={h.id}
               onClick={() => open(h)}
-              className="tabular flex cursor-pointer items-center justify-between gap-4 px-5 py-3.5"
+              className="tabular flex cursor-pointer items-center gap-3 px-4 py-3"
             >
-              <div className="flex min-w-0 items-center gap-3">
-                <CompanyLogo
-                  name={profiles?.get(h.symbol)?.name ?? h.name ?? h.symbol}
-                  website={profiles?.get(h.symbol)?.website}
-                  size={32}
-                />
-                <div className="min-w-0">
-                  <div className="truncate font-semibold tracking-tight">
-                    {h.source === "kite_mf"
-                      ? (profiles?.get(h.symbol)?.name ?? h.name ?? h.symbol)
-                      : h.symbol}
-                  </div>
-                  <div className="truncate text-[12px] text-ink-3">
-                    {qty(h.quantity)} × {money(h.avgPrice, h.currency)}
-                  </div>
+              <CompanyLogo name={nameOf(h)} website={profiles?.get(h.symbol)?.website} size={36} />
+              <div className="min-w-0 flex-1">
+                <div className="truncate font-medium">{nameOf(h)}</div>
+                <div className="truncate text-[12px] text-ink-3">
+                  {pct(total ? (v / total) * 100 : 0, 1, false)} ·{" "}
+                  {x.value != null ? `XIRR ${pct(x.value * 100, 1)}` : x.note}
                 </div>
               </div>
               <div className="shrink-0 text-right">
-                <div className="font-medium">{money(v ?? invested(h), h.currency, 0)}</div>
+                <div className="font-medium">{moneyCompact(v, h.currency)}</div>
                 <div className="text-[12px]">
-                  <Delta value={p}>{pct(pnlPct(h), 1)}</Delta>
+                  <Delta value={pnlPct(h)}>{pct(pnlPct(h), 1)}</Delta>
                 </div>
               </div>
             </li>

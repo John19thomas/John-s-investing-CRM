@@ -41,3 +41,17 @@ export function bookXirr(holdings: Holding[], txns: Txn[], stats: Map<string, Po
     total: holdings.length,
   };
 }
+
+/** XIRR for display, or a short reason why it can't be calculated yet. */
+export function xirrInfo(
+  s: PositionStats | undefined,
+  held: number,
+): { value: number | null; note: string } {
+  if (!s || s.tradedQuantity <= 0) return { value: null, note: "No trade history" };
+  if (s.xirr != null) return { value: s.xirr, note: "" };
+  if (!s.complete) {
+    const pctCovered = Math.max(0, Math.min(100, Math.round((s.tradedQuantity / held) * 100)));
+    return { value: null, note: `Partial history (${pctCovered}%)` };
+  }
+  return { value: null, note: "Held < 30 days" };
+}

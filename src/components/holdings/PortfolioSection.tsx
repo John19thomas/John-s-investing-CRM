@@ -17,14 +17,18 @@ export function PortfolioSection({
   stats,
   showDay,
   controls,
+  bookXirr,
+  notice,
 }: {
   title: string;
   holdings: Holding[];
   stats: Map<string, PositionStats>;
   showDay?: boolean;
   controls?: ReactNode;
+  bookXirr?: number | null;
+  notice?: ReactNode;
 }) {
-  const [view, setView] = useState<"companies" | "table">("companies");
+  const [view, setView] = useState<"companies" | "table">("table");
   const profiles = useProfiles();
   const research = useResearchCompany();
   const [starting, setStarting] = useState(false);
@@ -94,14 +98,6 @@ export function PortfolioSection({
             onChange={setView}
             options={[
               {
-                value: "companies",
-                label: (
-                  <span className="flex items-center gap-1.5">
-                    <LayoutGrid className="size-3.5" aria-hidden /> Companies
-                  </span>
-                ),
-              },
-              {
                 value: "table",
                 label: (
                   <span className="flex items-center gap-1.5">
@@ -109,10 +105,19 @@ export function PortfolioSection({
                   </span>
                 ),
               },
+              {
+                value: "companies",
+                label: (
+                  <span className="flex items-center gap-1.5">
+                    <LayoutGrid className="size-3.5" aria-hidden /> Companies
+                  </span>
+                ),
+              },
             ]}
           />
         </div>
       </div>
+      {notice}
       {view === "companies" ? (
         <CompanyGrid holdings={holdings} profiles={byS} stats={stats} />
       ) : (
@@ -122,6 +127,7 @@ export function PortfolioSection({
             showDay={showDay ?? true}
             profiles={byS}
             stats={stats}
+            bookXirr={bookXirr ?? null}
           />
         </div>
       )}
