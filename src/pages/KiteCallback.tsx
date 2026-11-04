@@ -38,7 +38,7 @@ export default function KiteCallback() {
           <p className="max-w-md text-ink-2">{error}</p>
           <Link
             to="/app/india"
-            className="rounded-full bg-ink px-5 py-2.5 text-sm font-medium text-paper"
+            className="rounded-sm bg-ink px-5 py-2.5 text-sm font-medium text-paper"
           >
             Back to India equities
           </Link>

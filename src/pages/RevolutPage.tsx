@@ -48,12 +48,8 @@ export default function RevolutPage() {
   return (
     <div className="space-y-6 pb-16">
       <PageHeader
-        eyebrow="02 · Public markets · Global"
-        title={
-          <>
-            Global <em className="text-ink-3">equities</em>
-          </>
-        }
+        eyebrow="02 / Global"
+        title="Global equities"
         description={
           s.lastSynced ? (
             <>

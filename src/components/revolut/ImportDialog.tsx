@@ -86,9 +86,7 @@ export function ImportDialog({
     >
       <DialogContent className="max-h-[92dvh] overflow-y-auto border-line bg-surface sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle className="font-display text-3xl font-normal">
-            Import from Revolut
-          </DialogTitle>
+          <DialogTitle className="font-display text-2xl">Import from Revolut</DialogTitle>
           <DialogDescription className="text-ink-2">
             Upload your Revolut stocks <strong>account statement</strong> (CSV). Positions and
             average costs are rebuilt from your trades. Importing replaces your previous Revolut
@@ -113,10 +111,10 @@ export function ImportDialog({
               }}
               className={cn(
                 "flex w-full flex-col items-center rounded-2xl border border-dashed px-6 py-12 text-center transition-colors",
-                dragging ? "border-ink bg-paper-2" : "border-line hover:bg-paper",
+                dragging ? "border-ink bg-paper-2" : "border-line hover:bg-paper-2",
               )}
             >
-              <span className="grid size-12 place-items-center rounded-2xl bg-ink text-paper">
+              <span className="grid size-12 place-items-center rounded-sm bg-ink text-paper">
                 <Upload className="size-5" aria-hidden />
               </span>
               <span className="mt-4 font-medium">Drop your CSV here, or click to choose</span>
@@ -148,7 +146,7 @@ export function ImportDialog({
           </>
         ) : (
           <div className="space-y-4">
-            <div className="flex items-center gap-3 rounded-xl bg-paper px-4 py-3 text-sm">
+            <div className="flex items-center gap-3 rounded-sm bg-paper-2 px-4 py-3 text-sm">
               <FileSpreadsheet className="size-5 text-ink-2" aria-hidden />
               <div className="min-w-0 flex-1">
                 <div className="truncate font-medium">{fileName}</div>

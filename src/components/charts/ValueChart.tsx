@@ -47,7 +47,7 @@ export function ValueChart({ data, currency }: { data: Snapshot[]; currency: str
           options={(Object.keys(RANGES) as Range[]).map((r) => ({ value: r, label: r }))}
         />
       </div>
-      <div className="h-[260px] px-1 pt-2 sm:h-[300px]">
+      <div className="h-[260px] px-1 pt-2 sm:h-[300px] lg:h-[360px]">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={rows} margin={{ top: 12, right: 16, bottom: 4, left: 4 }}>
             <defs>
@@ -80,7 +80,7 @@ export function ValueChart({ data, currency }: { data: Snapshot[]; currency: str
                 if (!active || !p) return null;
                 const gain = p.current - p.invested;
                 return (
-                  <div className="rounded-xl border border-line bg-surface px-3.5 py-2.5 text-[13px] shadow-lg shadow-ink/5">
+                  <div className="rounded-xl border border-line bg-surface px-3.5 py-2.5 text-[13px] ">
                     <div className="font-medium">{format(parseISO(p.date), "d MMM yyyy")}</div>
                     <div className="tabular mt-1.5 grid grid-cols-[auto_auto] gap-x-4 gap-y-0.5">
                       <span className="text-ink-3">Market value</span>

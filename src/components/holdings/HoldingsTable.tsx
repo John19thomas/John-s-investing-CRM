@@ -95,7 +95,7 @@ export function HoldingsTable({
               return (
                 <tr
                   key={h.id}
-                  className="border-b border-line/70 transition-colors last:border-0 hover:bg-paper/60"
+                  className="border-b border-line/70 transition-colors last:border-0 hover:bg-paper-2/70"
                 >
                   <td className="py-3 pr-3 pl-6">
                     <div className="font-semibold tracking-tight">{h.symbol}</div>

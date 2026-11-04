@@ -1,6 +1,5 @@
 import { ArrowDownRight, ArrowUpRight } from "lucide-react";
-import { animate, useInView, useMotionValue, useReducedMotion } from "motion/react";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 export function PageHeader({
@@ -17,8 +16,8 @@ export function PageHeader({
   return (
     <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
       <div className="min-w-0">
-        <p className="text-xs font-medium tracking-[0.14em] text-ink-3 uppercase">{eyebrow}</p>
-        <h1 className="font-display mt-2 text-[40px] leading-[1.02] sm:text-[56px]">{title}</h1>
+        <p className="text-[13px] text-ink-3">{eyebrow}</p>
+        <h1 className="font-display mt-2 text-[36px] leading-[1.05] sm:text-[52px]">{title}</h1>
         {description && <div className="mt-3 max-w-2xl text-[15px] text-ink-2">{description}</div>}
       </div>
       {actions && <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>}
@@ -28,7 +27,7 @@ export function PageHeader({
 
 export function Card({ className, children }: { className?: string; children: ReactNode }) {
   return (
-    <section className={cn("rounded-2xl border border-line bg-surface", className)}>
+    <section className={cn("rounded-sm border border-line bg-surface", className)}>
       {children}
     </section>
   );
@@ -46,7 +45,7 @@ export function CardHeader({
   return (
     <div className="flex items-start justify-between gap-4 px-5 pt-5 sm:px-6">
       <div>
-        <h2 className="text-[15px] font-semibold tracking-tight">{title}</h2>
+        <h2 className="text-[15px] font-medium tracking-tight">{title}</h2>
         {sub && <p className="mt-0.5 text-[13px] text-ink-3">{sub}</p>}
       </div>
       {right}
@@ -77,7 +76,7 @@ export function Delta({
   );
 }
 
-/** Counts up to a number the first time it scrolls into view. */
+/** Formats a number for display. (Kept as a component so callers don't change.) */
 export function AnimatedNumber({
   value,
   format,
@@ -85,25 +84,7 @@ export function AnimatedNumber({
   value: number;
   format: (n: number) => string;
 }) {
-  const ref = useRef<HTMLSpanElement>(null);
-  const inView = useInView(ref, { once: true });
-  const reduce = useReducedMotion();
-  const mv = useMotionValue(0);
-  const [text, setText] = useState(format(reduce ? value : 0));
-  useEffect(() => {
-    if (!inView) return;
-    if (reduce) {
-      setText(format(value));
-      return;
-    }
-    const controls = animate(mv, value, {
-      duration: 1.1,
-      ease: [0.16, 1, 0.3, 1],
-      onUpdate: (v) => setText(format(v)),
-    });
-    return () => controls.stop();
-  }, [inView, value, reduce, format, mv]);
-  return <span ref={ref}>{text}</span>;
+  return <>{format(value)}</>;
 }
 
 export function StatTile({
@@ -124,10 +105,10 @@ export function StatTile({
       <span className="text-[13px] text-ink-3">{label}</span>
       <span
         className={cn(
-          "truncate font-semibold tracking-tight",
+          "truncate font-medium tracking-tight",
           hero
-            ? "text-[40px] leading-none sm:text-[52px]"
-            : "text-2xl leading-tight sm:text-[28px]",
+            ? "text-[40px] leading-none sm:text-[48px]"
+            : "text-2xl leading-tight sm:text-[26px]",
         )}
       >
         {value}
@@ -154,10 +135,8 @@ export function EmptyState({
 }) {
   return (
     <div className="flex flex-col items-center px-6 py-16 text-center">
-      <div className="grid size-12 place-items-center rounded-2xl bg-paper-2 text-ink-2">
-        {icon}
-      </div>
-      <h3 className="mt-4 text-lg font-semibold tracking-tight">{title}</h3>
+      <div className="grid size-12 place-items-center rounded-sm bg-paper-2 text-ink-2">{icon}</div>
+      <h3 className="mt-4 text-lg font-medium tracking-tight">{title}</h3>
       <div className="mt-1.5 max-w-md text-[15px] text-ink-2">{body}</div>
       {action && <div className="mt-6">{action}</div>}
     </div>
@@ -175,7 +154,7 @@ export function PillButton({
       type="button"
       {...props}
       className={cn(
-        "inline-flex items-center justify-center gap-2 rounded-full px-4 py-2.5 text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50",
+        "inline-flex items-center justify-center gap-2 rounded-sm px-4 py-2.5 text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50",
         variant === "solid"
           ? "bg-ink text-paper hover:opacity-85"
           : "border border-line bg-surface text-ink hover:bg-paper-2",
@@ -199,10 +178,7 @@ export function SegmentedControl<T extends string>({
   className?: string;
 }) {
   return (
-    <div
-      className={cn("inline-flex rounded-full border border-line bg-surface p-1", className)}
-      role="tablist"
-    >
+    <div className={cn("inline-flex gap-4", className)} role="tablist">
       {options.map((o) => (
         <button
           key={o.value}
@@ -211,8 +187,10 @@ export function SegmentedControl<T extends string>({
           aria-selected={value === o.value}
           onClick={() => onChange(o.value)}
           className={cn(
-            "rounded-full px-3.5 py-1.5 text-[13px] font-medium transition-colors",
-            value === o.value ? "bg-ink text-paper" : "text-ink-2 hover:text-ink",
+            "border-b-2 py-1 text-[13px] transition-colors",
+            value === o.value
+              ? "border-ink font-medium text-ink"
+              : "border-transparent text-ink-3 hover:text-ink",
           )}
         >
           {o.label}

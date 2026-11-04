@@ -83,10 +83,10 @@ function PanelBody({
   return (
     <div className="pb-12">
       <div className="border-b border-line px-6 pt-8 pb-6">
-        <p className="text-xs font-medium tracking-[0.14em] text-ink-3 uppercase">
+        <p className="text-[13px] text-ink-3">
           {company.region === "india" ? "India" : "Global"} · Private
         </p>
-        <SheetTitle className="font-display mt-2 text-[40px] leading-none font-normal">
+        <SheetTitle className="font-display mt-2 text-[32px] leading-tight">
           {company.name}
         </SheetTitle>
         <SheetDescription asChild>
@@ -109,14 +109,14 @@ function PanelBody({
           </div>
         </SheetDescription>
         <div className="mt-5 flex flex-wrap items-center gap-2">
-          <div className="flex flex-wrap gap-1 rounded-full border border-line bg-paper p-1">
+          <div className="flex flex-wrap gap-1 rounded-sm border border-line bg-paper p-1">
             {STATUS_ORDER.map((s) => (
               <button
                 key={s}
                 type="button"
                 onClick={() => company.status !== s && save.mutate({ ...company, status: s })}
                 className={cn(
-                  "flex items-center gap-1.5 rounded-full px-3 py-1 text-[13px] font-medium transition-colors",
+                  "flex items-center gap-1.5 rounded-sm px-3 py-1 text-[13px] font-medium transition-colors",
                   company.status === s ? "bg-ink text-paper" : "text-ink-2 hover:text-ink",
                 )}
               >
@@ -155,7 +155,7 @@ function PanelBody({
         <Section title="Key metrics">
           <dl className="grid gap-2 sm:grid-cols-2">
             {metrics.map(([k, v]) => (
-              <div key={k} className="rounded-xl bg-paper px-4 py-3">
+              <div key={k} className="rounded-sm border border-line px-4 py-3">
                 <dt className="text-[12px] text-ink-3">{k}</dt>
                 <dd className="mt-0.5 text-[15px] font-medium">{v}</dd>
               </div>
@@ -413,7 +413,7 @@ function Documents({ company }: { company: Company }) {
             <button
               type="button"
               onClick={() => input.current?.click()}
-              className="flex w-full flex-col items-center rounded-2xl border border-dashed border-line px-6 py-8 text-center transition-colors hover:bg-paper"
+              className="flex w-full flex-col items-center rounded-2xl border border-dashed border-line px-6 py-8 text-center transition-colors hover:bg-paper-2"
             >
               <Upload className="size-5 text-ink-2" aria-hidden />
               <span className="mt-2 text-[15px] font-medium">Upload an IC memo or deck (PDF)</span>

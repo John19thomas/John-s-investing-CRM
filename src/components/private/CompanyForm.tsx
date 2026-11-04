@@ -87,7 +87,7 @@ export function CompanyForm({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[92dvh] overflow-y-auto border-line bg-surface sm:max-w-xl">
         <DialogHeader>
-          <DialogTitle className="font-display text-3xl font-normal">
+          <DialogTitle className="font-display text-2xl">
             {company
               ? `Edit ${company.name}`
               : region === "india"

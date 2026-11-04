@@ -2,14 +2,13 @@
 @import "tw-animate-css";
 
 /*
- * Design tokens. Editorial, VC-site feel: warm paper, near-black ink, one serif
- * for display type, Inter for everything with a number in it.
+ * Design tokens. Minimal, Sequoia-like: white page, near-black ink, one sans-serif face,
+ * thin dividers, small radii, one deep green accent used sparingly.
  * Chart colours are the validated categorical slots (see dataviz palette):
  * series-1 blue, series-2 orange, series-3 aqua, series-4 violet.
  */
 @theme inline {
   --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
-  --font-serif: "Instrument Serif", ui-serif, Georgia, serif;
 
   --color-background: var(--paper);
   --color-foreground: var(--ink);
@@ -37,6 +36,7 @@
   --color-accent-foreground: var(--ink);
   --color-destructive: var(--loss);
   --color-destructive-foreground: #ffffff;
+  --color-brand: var(--brand);
 
   --color-gain: var(--gain);
   --color-loss: var(--loss);
@@ -46,25 +46,27 @@
   --color-series-4: var(--series-4);
   --color-grid: var(--grid);
 
-  --radius-sm: 6px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
-  --radius-xl: 16px;
-  --radius-2xl: 24px;
+  --radius-sm: 2px;
+  --radius-md: 3px;
+  --radius-lg: 4px;
+  --radius-xl: 4px;
+  --radius-2xl: 4px;
+  --radius-3xl: 6px;
 }
 
 :root {
   color-scheme: light;
-  --paper: #f5f3ee;
-  --paper-2: #ece9e1;
-  --surface: #fbfaf7;
-  --ink: #0e0e0c;
-  --ink-2: #3a3935;
-  --ink-3: #6b6a64;
-  --line: #e2ded5;
-  --grid: #e8e5dd;
+  --paper: #ffffff;
+  --paper-2: #f4f4f3;
+  --surface: #ffffff;
+  --ink: #111111;
+  --ink-2: #3d3d3d;
+  --ink-3: #6b6b6b;
+  --line: #e4e4e2;
+  --grid: #ececea;
+  --brand: #0b5d3b;
 
-  /* Gains/losses: text-safe steps (>= 4.5:1 on surface), always paired with a sign + arrow. */
+  /* Gains/losses: text-safe steps (>= 4.5:1 on white), always paired with a sign + arrow. */
   --gain: #0f7a2e;
   --loss: #c7362f;
 
@@ -74,8 +76,12 @@
   --series-4: #6250d6;
 }
 
-* {
-  border-color: var(--line);
+@layer base {
+  *,
+  ::before,
+  ::after {
+    border-color: var(--line);
+  }
 }
 
 html {
@@ -102,39 +108,10 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+/* Headlines: same sans, tighter tracking, medium weight. */
 .font-display {
-  font-family: var(--font-serif);
-  font-weight: 400;
-  letter-spacing: -0.01em;
-}
-
-/* Thin hairline grid used on the landing page. */
-.paper-grid {
-  background-image:
-    linear-gradient(to right, color-mix(in oklab, var(--ink) 6%, transparent) 1px, transparent 1px),
-    linear-gradient(to bottom, color-mix(in oklab, var(--ink) 6%, transparent) 1px, transparent 1px);
-  background-size: 64px 64px;
-}
-
-@keyframes marquee {
-  from {
-    transform: translateX(0);
-  }
-  to {
-    transform: translateX(-50%);
-  }
-}
-.animate-marquee {
-  animation: marquee 40s linear infinite;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .animate-marquee {
-    animation: none;
-  }
-  html {
-    scroll-behavior: auto;
-  }
+  font-weight: 500;
+  letter-spacing: -0.035em;
 }
 
 /* Hide scrollbars on horizontally scrolling tab strips. */

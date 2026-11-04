@@ -58,12 +58,8 @@ export default function IndiaPage() {
   return (
     <div className="space-y-6 pb-16">
       <PageHeader
-        eyebrow="01 · Public markets · India"
-        title={
-          <>
-            India <em className="text-ink-3">equities</em>
-          </>
-        }
+        eyebrow="01 / India"
+        title="India equities"
         description={
           s.lastSynced ? (
             <>

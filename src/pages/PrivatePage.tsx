@@ -44,13 +44,9 @@ export default function PrivatePage() {
   return (
     <div className="space-y-6 pb-16">
       <PageHeader
-        eyebrow="03 · Private markets"
-        title={
-          <>
-            Private <em className="text-ink-3">& pipeline</em>
-          </>
-        }
-        description="Companies I've backed, am evaluating or am tracking. Each one builds up context from notes and IC memos that Claude reads."
+        eyebrow="03 / Private"
+        title="Private investments"
+        description="Companies invested in or under review. Add notes and PDF documents to each company; Claude summarises the documents."
         actions={
           <PillButton onClick={() => setAdding(true)}>
             <Plus className="size-4" aria-hidden /> Add company
@@ -59,15 +55,17 @@ export default function PrivatePage() {
       />
 
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex gap-1 rounded-full border border-line bg-surface p-1">
+        <div className="flex gap-6">
           {(["global", "india"] as const).map((r) => (
             <NavLink
               key={r}
               to={`${base}/private/${r}`}
               className={({ isActive }) =>
                 cn(
-                  "rounded-full px-4 py-1.5 text-sm font-medium transition-colors",
-                  isActive ? "bg-ink text-paper" : "text-ink-2 hover:text-ink",
+                  "border-b-2 py-1 text-[15px] transition-colors",
+                  isActive
+                    ? "border-ink font-medium text-ink"
+                    : "border-transparent text-ink-3 hover:text-ink",
                 )
               }
             >
@@ -191,12 +189,12 @@ function Board({ companies, onOpen }: { companies: Company[]; onOpen: (id: strin
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.04 }}
-                  className="w-full rounded-2xl border border-line bg-surface p-4 text-left transition-all hover:-translate-y-0.5 hover:border-ink/30 hover:shadow-lg hover:shadow-ink/5"
+                  className="w-full rounded-2xl border border-line bg-surface p-4 text-left transition-all hover:border-ink/40"
                 >
                   <div className="flex items-start justify-between gap-2">
                     <span className="font-semibold tracking-tight">{c.name}</span>
                     {c.stage && (
-                      <span className="shrink-0 rounded-full bg-paper-2 px-2 py-0.5 text-[11px] text-ink-2">
+                      <span className="shrink-0 rounded-sm bg-paper-2 px-1.5 py-0.5 text-[11px] text-ink-2">
                         {c.stage}
                       </span>
                     )}
@@ -251,7 +249,7 @@ function ListView({ companies, onOpen }: { companies: Company[]; onOpen: (id: st
               <tr
                 key={c.id}
                 onClick={() => onOpen(c.id)}
-                className="cursor-pointer border-b border-line/70 transition-colors last:border-0 hover:bg-paper/60"
+                className="cursor-pointer border-b border-line/70 transition-colors last:border-0 hover:bg-paper-2/70"
               >
                 <td className="py-3.5 pr-3 pl-6 font-semibold tracking-tight">{c.name}</td>
                 <td className="px-3">

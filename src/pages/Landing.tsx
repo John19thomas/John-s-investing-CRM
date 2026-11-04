@@ -1,433 +1,216 @@
-import {
-  ArrowRight,
-  ArrowUpRight,
-  Database,
-  FileText,
-  Lock,
-  ShieldCheck,
-  Smartphone,
-  Sparkles,
-} from "lucide-react";
-import { motion } from "motion/react";
-import type { ReactNode } from "react";
+import { ArrowRight, ArrowUpRight } from "lucide-react";
 import { Link } from "react-router";
 import { useAuth } from "@/auth/AuthContext";
 import { Wordmark } from "@/components/app/Wordmark";
-import { HeroVisual } from "@/components/landing/HeroVisual";
-import { IndiaVisual, PrivateVisual, RevolutVisual } from "@/components/landing/SectionVisuals";
 
-const ease = [0.16, 1, 0.3, 1] as const;
-const reveal = {
-  initial: { opacity: 0, y: 28 },
-  whileInView: { opacity: 1, y: 0 },
-  viewport: { once: true, margin: "-80px" },
-  transition: { duration: 0.8, ease },
-};
-
-const TICKER = [
-  ["RELIANCE", "+0.84%"],
-  ["NVDA", "+2.31%"],
-  ["INFY", "+1.12%"],
-  ["MSFT", "+0.46%"],
-  ["HDFCBANK", "−0.42%"],
-  ["ASML", "−0.91%"],
-  ["BHARTIARTL", "+1.68%"],
-  ["TSM", "+1.05%"],
-  ["TITAN", "−1.24%"],
-  ["GOOGL", "+0.77%"],
-  ["ICICIBANK", "+0.95%"],
-  ["VOO", "+0.38%"],
-] as const;
-
-const VIEWS = [
+const SECTIONS = [
   {
     n: "01",
     to: "/demo/india",
-    kicker: "Public markets · India",
     title: "India equities",
-    body: "Stocks and mutual funds read straight from Zerodha Kite. One click to sync: value, P&L, today's movers and allocation, all live.",
-    tags: ["Zerodha Kite Connect", "Read-only", "Daily history"],
-    visual: <IndiaVisual />,
+    body: "Stocks and mutual funds held with Zerodha. Synced from Kite in one click.",
+    source: "Zerodha Kite",
   },
   {
     n: "02",
     to: "/demo/revolut",
-    kicker: "Public markets · Global",
     title: "Global equities",
-    body: "US and European holdings at Revolut. Drop in the account statement CSV: trades are replayed into positions and average cost, previewed before saving.",
-    tags: ["CSV import", "Average-cost engine", "Multi-currency"],
-    visual: <RevolutVisual />,
+    body: "Stocks held with Revolut. Updated by uploading the account statement as a CSV.",
+    source: "Revolut CSV",
   },
   {
     n: "03",
     to: "/demo/private/global",
-    kicker: "Private markets",
-    title: "Private & pipeline",
-    body: "Portfolio companies and pipeline, split into Global and India books. Paste notes, upload IC memos: Claude reads every page and drafts the thesis, risks and metrics.",
-    tags: ["Global · India", "Notes timeline", "AI-read IC memos"],
-    visual: <PrivateVisual />,
+    title: "Private investments",
+    body: "Companies invested in or under review, split into Global and India. Notes and PDF documents for each company.",
+    source: "Notes and PDFs",
+  },
+];
+
+const STEPS = [
+  {
+    n: "1",
+    title: "Connect",
+    body: "Log in to Zerodha Kite. The connection can read holdings only; it cannot place orders.",
+  },
+  {
+    n: "2",
+    title: "Import",
+    body: "Upload a Revolut statement. Positions and average cost are calculated and shown for review before saving.",
+  },
+  {
+    n: "3",
+    title: "Add context",
+    body: "Paste notes and upload IC memos for private companies. Claude summarises each document and lists the key metrics.",
   },
 ];
 
 export default function Landing() {
   const { session } = useAuth();
-  const appHref = session ? "/app/india" : "/login";
 
   return (
-    <div className="min-h-dvh overflow-x-clip bg-paper">
-      {/* Nav */}
-      <header className="sticky top-0 z-40 border-b border-transparent bg-paper/80 backdrop-blur-xl">
-        <div className="mx-auto flex h-16 max-w-[1280px] items-center gap-8 px-4 sm:px-6">
+    <div className="min-h-dvh bg-paper">
+      <header className="border-b border-line">
+        <div className="mx-auto flex h-16 max-w-[1200px] items-center gap-6 px-5 sm:px-8">
           <Wordmark />
-          <nav className="hidden items-center gap-7 text-sm text-ink-2 md:flex">
-            <a href="#views" className="hover:text-ink">
-              The dashboard
-            </a>
-            <a href="#built" className="hover:text-ink">
-              How it's built
-            </a>
-            <a href="#principles" className="hover:text-ink">
-              Principles
-            </a>
+          <nav className="ml-auto flex items-center gap-1 text-[15px] whitespace-nowrap">
+            <Link to="/demo/india" className="px-3 py-2 text-ink-2 hover:text-ink">
+              Demo
+            </Link>
+            <Link
+              to={session ? "/app/india" : "/login"}
+              className="px-3 py-2 text-ink-2 hover:text-ink"
+            >
+              {session ? "Dashboard" : "Sign in"}
+            </Link>
           </nav>
-          <div className="ml-auto flex items-center gap-2">
-            <Link
-              to={appHref}
-              className="hidden rounded-full px-4 py-2 text-sm text-ink-2 hover:text-ink sm:block"
-            >
-              {session ? "Open dashboard" : "Sign in"}
-            </Link>
-            <Link
-              to="/demo/india"
-              className="group inline-flex items-center gap-1.5 rounded-full bg-ink px-4 py-2 text-sm font-medium text-paper transition-opacity hover:opacity-85"
-            >
-              <span className="whitespace-nowrap">
-                <span className="hidden sm:inline">Explore the </span>
-                <span className="sm:hidden">View </span>demo
-              </span>
-              <ArrowRight
-                className="size-3.5 transition-transform group-hover:translate-x-0.5"
-                aria-hidden
-              />
-            </Link>
-          </div>
         </div>
       </header>
 
-      {/* Hero */}
-      <section className="relative">
-        <div
-          className="paper-grid pointer-events-none absolute inset-0 [mask-image:radial-gradient(ellipse_at_top,black_20%,transparent_70%)]"
-          aria-hidden
-        />
-        <div className="relative mx-auto grid max-w-[1280px] items-center gap-14 px-4 pt-14 pb-20 sm:px-6 sm:pt-20 lg:grid-cols-[1.1fr_1fr] lg:gap-10 lg:pt-24 lg:pb-28">
-          <div>
-            <motion.p
-              {...reveal}
-              className="inline-flex items-center gap-2 rounded-full border border-line bg-surface px-3 py-1 text-[12px] text-ink-2"
-            >
-              <span className="size-1.5 rounded-full bg-gain" /> Personal investing dashboard · live
-            </motion.p>
-            <motion.h1
-              {...reveal}
-              transition={{ ...reveal.transition, delay: 0.05 }}
-              className="font-display mt-6 text-[56px] leading-[0.95] sm:text-[84px] lg:text-[104px]"
-            >
-              Every position.
-              <br />
-              <em className="text-ink-3">One view.</em>
-            </motion.h1>
-            <motion.p
-              {...reveal}
-              transition={{ ...reveal.transition, delay: 0.12 }}
-              className="mt-7 max-w-xl text-[18px] leading-relaxed text-ink-2"
-            >
-              Indian equities synced from Zerodha Kite, global equities from Revolut, and a
-              private-markets pipeline where AI reads every IC memo. Designed and shipped by
-              directing Claude Code.
-            </motion.p>
-            <motion.div
-              {...reveal}
-              transition={{ ...reveal.transition, delay: 0.18 }}
-              className="mt-9 flex flex-wrap items-center gap-3"
-            >
-              <Link
-                to="/demo/india"
-                className="group inline-flex items-center gap-2 rounded-full bg-ink px-6 py-3.5 text-[15px] font-medium text-paper transition-opacity hover:opacity-85"
-              >
-                Explore the live demo
-                <ArrowRight
-                  className="size-4 transition-transform group-hover:translate-x-0.5"
-                  aria-hidden
-                />
-              </Link>
-              <a
-                href="#built"
-                className="inline-flex items-center gap-2 rounded-full border border-line bg-surface px-6 py-3.5 text-[15px] font-medium transition-colors hover:bg-paper-2"
-              >
-                How it's built
-              </a>
-            </motion.div>
-          </div>
-          <HeroVisual />
-        </div>
-
-        {/* Ticker */}
-        <div className="relative border-y border-line bg-surface py-3.5" aria-hidden>
-          <div className="flex w-max animate-marquee gap-10 pr-10">
-            {[...TICKER, ...TICKER].map(([t, c], i) => (
-              <span
-                key={i}
-                className="tabular flex items-center gap-2 text-[13px] whitespace-nowrap"
-              >
-                <span className="font-semibold">{t}</span>
-                <span className={c.startsWith("+") ? "text-gain" : "text-loss"}>{c}</span>
-              </span>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Three views */}
-      <section
-        id="views"
-        className="mx-auto max-w-[1280px] scroll-mt-20 px-4 py-24 sm:px-6 sm:py-32"
-      >
-        <motion.div {...reveal} className="grid gap-6 lg:grid-cols-2 lg:items-end">
-          <h2 className="font-display text-[44px] leading-[1] sm:text-[64px]">
-            Three views.
-            <br />
-            <em className="text-ink-3">One portfolio.</em>
-          </h2>
-          <p className="max-w-lg text-[17px] leading-relaxed text-ink-2 lg:justify-self-end">
-            Each lens answers one question: what do I own in India, what do I own abroad, and what
-            am I backing or watching in private markets?
+      <main>
+        {/* Intro */}
+        <section className="mx-auto max-w-[1200px] px-5 pt-20 pb-20 sm:px-8 sm:pt-32 sm:pb-28">
+          <h1 className="font-display max-w-4xl text-[44px] leading-[1.02] sm:text-[72px]">
+            A personal dashboard for public and private investments.
+          </h1>
+          <p className="mt-8 max-w-2xl text-[18px] leading-relaxed text-ink-2">
+            Indian equities, global equities and private companies in one place. Holdings update
+            from Zerodha Kite and Revolut; private companies hold notes and documents.
           </p>
-        </motion.div>
-
-        <div className="mt-16 border-t border-ink">
-          {VIEWS.map((v, i) => (
-            <motion.div
-              key={v.n}
-              {...reveal}
-              transition={{ ...reveal.transition, delay: i * 0.05 }}
+          <div className="mt-10 flex flex-wrap items-center gap-x-8 gap-y-4">
+            <Link
+              to="/demo/india"
+              className="group inline-flex items-center gap-2 bg-ink px-6 py-3.5 text-[15px] font-medium text-paper transition-opacity hover:opacity-85"
             >
-              <Link
-                to={v.to}
-                className="group grid gap-8 border-b border-line py-10 transition-colors hover:bg-surface/60 sm:py-12 lg:grid-cols-[80px_1fr_minmax(0,420px)] lg:gap-12 lg:px-4"
-              >
-                <span className="font-display text-[28px] text-ink-3">{v.n}</span>
-                <div>
-                  <p className="text-[12px] font-medium tracking-[0.14em] text-ink-3 uppercase">
-                    {v.kicker}
-                  </p>
-                  <h3 className="font-display mt-2 flex items-center gap-3 text-[40px] leading-none sm:text-[52px]">
-                    {v.title}
-                    <ArrowUpRight
-                      className="size-7 text-ink-3 transition-all group-hover:translate-x-1 group-hover:-translate-y-1 group-hover:text-ink"
-                      aria-hidden
-                    />
-                  </h3>
-                  <p className="mt-4 max-w-xl text-[16px] leading-relaxed text-ink-2">{v.body}</p>
-                  <ul className="mt-5 flex flex-wrap gap-2">
-                    {v.tags.map((t) => (
-                      <li
-                        key={t}
-                        className="rounded-full border border-line bg-surface px-3 py-1 text-[12px] text-ink-2"
-                      >
-                        {t}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-                <div className="rounded-2xl border border-line bg-paper-2/60 p-5 sm:p-6">
-                  {v.visual}
-                </div>
-              </Link>
-            </motion.div>
-          ))}
-        </div>
-      </section>
+              View demo
+              <ArrowRight
+                className="size-4 transition-transform group-hover:translate-x-0.5"
+                aria-hidden
+              />
+            </Link>
+            <Link
+              to={session ? "/app/india" : "/login"}
+              className="text-[15px] font-medium underline decoration-line underline-offset-[6px] hover:decoration-ink"
+            >
+              {session ? "Open dashboard" : "Sign in"}
+            </Link>
+          </div>
+        </section>
 
-      {/* Built with AI */}
-      <section id="built" className="scroll-mt-16 bg-ink text-paper">
-        <div className="mx-auto max-w-[1280px] px-4 py-24 sm:px-6 sm:py-32">
-          <motion.div {...reveal} className="max-w-4xl">
-            <p className="text-[12px] font-medium tracking-[0.14em] text-paper/50 uppercase">
-              How it's built
-            </p>
-            <h2 className="font-display mt-4 text-[44px] leading-[1] sm:text-[72px]">
-              Built by directing AI,
-              <br />
-              <em className="text-paper/50">not by hand-writing code.</em>
+        {/* Snapshot (demo figures) */}
+        <section className="mx-auto max-w-[1200px] px-5 sm:px-8">
+          <div className="flex items-baseline justify-between border-t border-ink pt-4">
+            <h2 className="text-[13px] font-medium tracking-[0.08em] text-ink-3 uppercase">
+              Snapshot
             </h2>
-            <p className="mt-6 max-w-2xl text-[17px] leading-relaxed text-paper/65">
-              Every layer, from the database schema and security policies to the broker integration,
-              the CSV engine and this page, was specified in plain English and built with Claude
-              Code. Production stack, production practices.
-            </p>
-          </motion.div>
-
-          <Architecture />
-
-          <div className="mt-16 grid gap-px overflow-hidden rounded-2xl bg-paper/10 sm:grid-cols-2 lg:grid-cols-4">
+            <span className="text-[13px] text-ink-3">Demo data</span>
+          </div>
+          <dl className="grid grid-cols-1 sm:grid-cols-3">
             {[
-              [
-                "4",
-                "serverless functions",
-                "Kite sync · Revolut import · memo reader · AI analyst",
-              ],
-              ["12", "Postgres tables", "Every one locked with row-level security"],
-              ["3", "data sources unified", "Zerodha, Revolut and private-market documents"],
-              ["1", "codebase", "Front end, back end and schema, versioned in Git"],
-            ].map(([n, k, d], i) => (
-              <motion.div
+              ["India equities", "₹33.0L", "11 stocks, 3 funds"],
+              ["Global equities", "$50.9K", "9 positions"],
+              ["Private investments", "7", "companies, 2 invested"],
+            ].map(([k, v, d]) => (
+              <div
                 key={k}
-                {...reveal}
-                transition={{ ...reveal.transition, delay: i * 0.06 }}
-                className="bg-ink p-6 sm:p-8"
+                className="border-b border-line py-8 sm:border-b-0 sm:py-10 sm:pr-8 sm:[&:not(:first-child)]:border-l sm:[&:not(:first-child)]:pl-8"
               >
-                <div className="text-[56px] leading-none font-semibold tracking-tight">{n}</div>
-                <div className="mt-3 text-[15px] font-medium">{k}</div>
-                <div className="mt-1 text-[13px] text-paper/50">{d}</div>
-              </motion.div>
+                <dt className="text-[14px] text-ink-3">{k}</dt>
+                <dd className="mt-3 text-[44px] leading-none font-medium tracking-tight sm:text-[56px]">
+                  {v}
+                </dd>
+                <dd className="mt-3 text-[14px] text-ink-2">{d}</dd>
+              </div>
             ))}
+          </dl>
+        </section>
+
+        {/* Sections */}
+        <section id="sections" className="mx-auto max-w-[1200px] px-5 pt-24 sm:px-8 sm:pt-32">
+          <div className="border-t border-ink pt-4">
+            <h2 className="text-[13px] font-medium tracking-[0.08em] text-ink-3 uppercase">
+              Sections
+            </h2>
           </div>
-        </div>
-      </section>
+          <ul className="mt-2">
+            {SECTIONS.map((s) => (
+              <li key={s.n}>
+                <Link
+                  to={s.to}
+                  className="group grid grid-cols-[36px_1fr_auto] items-baseline gap-x-4 gap-y-2 border-b border-line py-7 sm:grid-cols-[56px_minmax(0,1fr)_minmax(0,1.3fr)_180px_24px] sm:gap-x-8"
+                >
+                  <span className="tabular text-[14px] text-ink-3">{s.n}</span>
+                  <span className="text-[22px] font-medium tracking-tight sm:text-[26px]">
+                    {s.title}
+                  </span>
+                  <ArrowUpRight
+                    className="size-5 self-center text-ink-3 transition-colors group-hover:text-ink sm:order-last"
+                    aria-hidden
+                  />
+                  <span className="col-start-2 text-[15px] leading-relaxed text-ink-2 sm:col-start-auto">
+                    {s.body}
+                  </span>
+                  <span className="col-start-2 text-[14px] text-ink-3 sm:col-start-auto">
+                    {s.source}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
 
-      {/* Principles */}
-      <section
-        id="principles"
-        className="mx-auto max-w-[1280px] scroll-mt-20 px-4 py-24 sm:px-6 sm:py-32"
-      >
-        <motion.h2
-          {...reveal}
-          className="font-display max-w-3xl text-[44px] leading-[1] sm:text-[64px]"
-        >
-          Quiet by design.
-        </motion.h2>
-        <div className="mt-14 grid gap-10 md:grid-cols-3">
-          <Principle icon={<ShieldCheck />} title="Read-only, always">
-            The broker connection can read holdings and nothing else. No orders can ever be placed
-            from here.
-          </Principle>
-          <Principle icon={<Lock />} title="Private by default">
-            Real data sits behind sign-in and row-level security. The public demo runs on
-            illustrative data with fictional private companies.
-          </Principle>
-          <Principle icon={<Smartphone />} title="Phone to laptop">
-            Built mobile-first: tables become cards, tabs move to the thumb, and every chart stays
-            legible on a phone.
-          </Principle>
-        </div>
-      </section>
-
-      {/* CTA */}
-      <section className="border-t border-line">
-        <div className="mx-auto flex max-w-[1280px] flex-col items-start gap-8 px-4 py-20 sm:px-6 md:flex-row md:items-end md:justify-between">
-          <h2 className="font-display text-[52px] leading-[0.95] sm:text-[88px]">
-            Take a<br />
-            <em className="text-ink-3">look around.</em>
-          </h2>
-          <Link
-            to="/demo/india"
-            className="group inline-flex items-center gap-2 rounded-full bg-ink px-7 py-4 text-[15px] font-medium text-paper transition-opacity hover:opacity-85"
-          >
-            Open the demo
-            <ArrowRight
-              className="size-4 transition-transform group-hover:translate-x-0.5"
-              aria-hidden
-            />
-          </Link>
-        </div>
-        <footer className="mx-auto flex max-w-[1280px] flex-col gap-2 border-t border-line px-4 py-8 text-[13px] text-ink-3 sm:flex-row sm:justify-between sm:px-6">
-          <span>© {new Date().getFullYear()} John Thomas. Not investment advice.</span>
-          <span>Built with Claude Code · Supabase · React</span>
-        </footer>
-      </section>
-    </div>
-  );
-}
-
-function Principle({
-  icon,
-  title,
-  children,
-}: {
-  icon: ReactNode;
-  title: string;
-  children: ReactNode;
-}) {
-  return (
-    <motion.div {...reveal} className="border-t border-ink pt-6">
-      <span className="grid size-10 place-items-center rounded-xl bg-ink text-paper [&>svg]:size-5">
-        {icon}
-      </span>
-      <h3 className="mt-5 text-[20px] font-semibold tracking-tight">{title}</h3>
-      <p className="mt-2 text-[15px] leading-relaxed text-ink-2">{children}</p>
-    </motion.div>
-  );
-}
-
-function Architecture() {
-  const sources = [
-    ["Zerodha Kite", "Holdings API · daily login"],
-    ["Revolut", "Account statement CSV"],
-    ["IC memos & notes", "PDFs and pasted text"],
-  ];
-  return (
-    <motion.div
-      {...reveal}
-      className="mt-16 grid items-stretch gap-4 lg:grid-cols-[1fr_auto_1.2fr_auto_1fr]"
-    >
-      <div className="grid gap-3">
-        {sources.map(([t, d]) => (
-          <div key={t} className="rounded-2xl border border-paper/15 px-5 py-4">
-            <div className="font-medium">{t}</div>
-            <div className="text-[13px] text-paper/50">{d}</div>
+        {/* How it works */}
+        <section className="mx-auto max-w-[1200px] px-5 pt-24 sm:px-8 sm:pt-32">
+          <div className="border-t border-ink pt-4">
+            <h2 className="text-[13px] font-medium tracking-[0.08em] text-ink-3 uppercase">
+              How it works
+            </h2>
           </div>
-        ))}
-      </div>
-      <Flow />
-      <div className="rounded-2xl bg-paper/[0.06] p-5 ring-1 ring-paper/15">
-        <div className="flex items-center gap-2 font-medium">
-          <Database className="size-4" aria-hidden /> Supabase
-        </div>
-        <ul className="mt-4 grid gap-2 text-[13px] text-paper/70">
-          {[
-            "Postgres with row-level security",
-            "Edge functions: kite-sync, revolut-import",
-            "Private storage for documents",
-            "Email sign-in",
-          ].map((x) => (
-            <li key={x} className="rounded-lg bg-paper/[0.06] px-3 py-2">
-              {x}
-            </li>
-          ))}
-        </ul>
-        <div className="mt-3 flex items-center gap-2 rounded-lg bg-series-4/25 px-3 py-2 text-[13px]">
-          <Sparkles className="size-4 shrink-0" aria-hidden /> Claude reads memos and answers
-          questions
-        </div>
-      </div>
-      <Flow />
-      <div className="flex flex-col justify-center rounded-2xl bg-paper p-5 text-ink">
-        <div className="flex items-center gap-2 font-medium">
-          <FileText className="size-4" aria-hidden /> This dashboard
-        </div>
-        <p className="mt-2 text-[13px] text-ink-2">
-          React + TypeScript on Vercel, responsive from phone to laptop.
-        </p>
-      </div>
-    </motion.div>
-  );
-}
+          <ol className="grid gap-10 pt-10 md:grid-cols-3 md:gap-12">
+            {STEPS.map((s) => (
+              <li key={s.n}>
+                <span className="tabular text-[14px] text-ink-3">{s.n}</span>
+                <h3 className="mt-2 text-[22px] font-medium tracking-tight">{s.title}</h3>
+                <p className="mt-3 text-[15px] leading-relaxed text-ink-2">{s.body}</p>
+              </li>
+            ))}
+          </ol>
+        </section>
 
-function Flow() {
-  return (
-    <div className="flex items-center justify-center py-1 text-paper/40" aria-hidden>
-      <ArrowRight className="size-5 rotate-90 lg:rotate-0" />
+        {/* Details */}
+        <section className="mx-auto max-w-[1200px] px-5 pt-24 pb-24 sm:px-8 sm:pt-32 sm:pb-32">
+          <div className="border-t border-ink pt-4">
+            <h2 className="text-[13px] font-medium tracking-[0.08em] text-ink-3 uppercase">
+              Details
+            </h2>
+          </div>
+          <dl className="grid gap-x-12 sm:grid-cols-2">
+            {[
+              ["Access", "Private. Real data requires sign-in. The public demo uses sample data."],
+              ["Security", "Stored in Supabase. Each row is restricted to its owner."],
+              ["Broker access", "Read-only. No orders can be placed from this dashboard."],
+              ["Devices", "Works on phone and laptop."],
+              ["Built with", "Claude Code, Supabase, React and Vercel."],
+              ["Source", "Versioned on GitHub."],
+            ].map(([k, v]) => (
+              <div
+                key={k}
+                className="grid grid-cols-[120px_1fr] gap-4 border-b border-line py-5 text-[15px]"
+              >
+                <dt className="text-ink-3">{k}</dt>
+                <dd className="text-ink-2">{v}</dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+      </main>
+
+      <footer className="border-t border-line">
+        <div className="mx-auto flex max-w-[1200px] flex-col gap-2 px-5 py-8 text-[13px] text-ink-3 sm:flex-row sm:justify-between sm:px-8">
+          <span>© {new Date().getFullYear()} John Thomas</span>
+          <span>For personal use. Not investment advice.</span>
+        </div>
+      </footer>
     </div>
   );
 }

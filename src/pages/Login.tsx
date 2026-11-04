@@ -7,7 +7,7 @@ import { Wordmark } from "@/components/app/Wordmark";
 import { supabase } from "@/lib/supabase";
 
 const field =
-  "w-full rounded-xl border border-line bg-surface px-4 py-3 text-[15px] outline-none transition-colors placeholder:text-ink-3 focus:border-ink";
+  "w-full rounded-sm border border-line bg-surface px-4 py-3 text-[15px] outline-none transition-colors placeholder:text-ink-3 focus:border-ink";
 
 export default function Login() {
   const { session } = useAuth();
@@ -47,66 +47,55 @@ export default function Login() {
   };
 
   return (
-    <div className="grid min-h-dvh lg:grid-cols-2">
-      <div className="flex flex-col px-6 py-8 sm:px-12">
-        <Wordmark />
-        <div className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center py-12">
-          <h1 className="font-display text-5xl leading-none">
-            {mode === "signin" ? "Welcome back" : "Create account"}
-          </h1>
-          <p className="mt-3 text-ink-2">This is a private dashboard. Want a look around first?</p>
-          <Link to="/demo/india" className="mt-1 text-sm underline underline-offset-2">
-            Open the demo instead
-          </Link>
-          <form onSubmit={submit} className="mt-8 space-y-3">
-            <input
-              className={field}
-              type="email"
-              autoComplete="email"
-              placeholder="Email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-            <input
-              className={field}
-              type="password"
-              autoComplete={mode === "signin" ? "current-password" : "new-password"}
-              placeholder="Password"
-              minLength={8}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-            <PillButton type="submit" className="w-full py-3" disabled={busy}>
-              {busy ? "One moment…" : mode === "signin" ? "Sign in" : "Create account"}
-            </PillButton>
-          </form>
-          <button
-            type="button"
-            className="mt-4 text-left text-sm text-ink-2"
-            onClick={() => setMode((m) => (m === "signin" ? "signup" : "signin"))}
-          >
-            {mode === "signin"
-              ? "First time here? Create the owner account"
-              : "Already have an account? Sign in"}
-          </button>
+    <div className="flex min-h-dvh flex-col">
+      <header className="border-b border-line">
+        <div className="mx-auto flex h-16 max-w-[1200px] items-center px-5 sm:px-8">
+          <Wordmark />
         </div>
-      </div>
-      <div className="relative hidden overflow-hidden bg-ink text-paper lg:block">
-        <div className="paper-grid absolute inset-0 opacity-[0.15] invert" aria-hidden />
-        <div className="relative flex h-full flex-col justify-end p-14">
-          <p className="font-display text-[56px] leading-[1.02]">
-            Every position,
-            <br />
-            <em className="text-paper/60">one quiet view.</em>
-          </p>
-          <p className="mt-6 max-w-md text-paper/60">
-            India equities from Zerodha Kite, global equities from Revolut and a private-markets
-            pipeline read by Claude.
-          </p>
-        </div>
-      </div>
+      </header>
+      <main className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center px-5 py-16">
+        <h1 className="font-display text-[36px] leading-tight">
+          {mode === "signin" ? "Sign in" : "Create account"}
+        </h1>
+        <p className="mt-3 text-[15px] text-ink-2">
+          This dashboard is private.{" "}
+          <Link to="/demo/india" className="underline underline-offset-2 hover:text-ink">
+            View the demo
+          </Link>{" "}
+          to see how it works.
+        </p>
+        <form onSubmit={submit} className="mt-8 space-y-3">
+          <input
+            className={field}
+            type="email"
+            autoComplete="email"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+          <input
+            className={field}
+            type="password"
+            autoComplete={mode === "signin" ? "current-password" : "new-password"}
+            placeholder="Password (8+ characters)"
+            minLength={8}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+          <PillButton type="submit" className="w-full py-3" disabled={busy}>
+            {busy ? "Please wait…" : mode === "signin" ? "Sign in" : "Create account"}
+          </PillButton>
+        </form>
+        <button
+          type="button"
+          className="mt-5 text-left text-sm text-ink-3 hover:text-ink"
+          onClick={() => setMode((m) => (m === "signin" ? "signup" : "signin"))}
+        >
+          {mode === "signin" ? "No account yet? Create one" : "Already have an account? Sign in"}
+        </button>
+      </main>
     </div>
   );
 }
