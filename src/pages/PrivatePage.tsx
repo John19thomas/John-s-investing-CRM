@@ -99,8 +99,8 @@ export default function PrivatePage() {
       </div>
 
       {companies.isLoading ? (
-        <div className="grid gap-4 md:grid-cols-4">
-          {[0, 1, 2, 3].map((i) => (
+        <div className="grid gap-4 md:grid-cols-3">
+          {[0, 1, 2].map((i) => (
             <Skeleton key={i} className="h-64" />
           ))}
         </div>
@@ -171,7 +171,7 @@ export default function PrivatePage() {
 
 function Board({ companies, onOpen }: { companies: Company[]; onOpen: (id: string) => void }) {
   return (
-    <div className="no-scrollbar -mx-4 flex snap-x gap-4 overflow-x-auto px-4 pb-2 sm:mx-0 sm:px-0 md:grid md:grid-cols-4 md:overflow-visible">
+    <div className="no-scrollbar -mx-4 flex snap-x gap-4 overflow-x-auto px-4 pb-2 sm:mx-0 sm:px-0 md:grid md:grid-cols-3 md:overflow-visible">
       {STATUS_ORDER.map((s) => {
         const col = companies.filter((c) => c.status === s);
         return (

@@ -133,7 +133,7 @@ const COMPANIES: Company[] = [
     sector: "Techbio",
     stage: "Seed",
     round: "$6M Seed",
-    status: "evaluated",
+    status: "watching",
     region: "global",
     thesis:
       "ML-designed enzymes for low-temperature industrial processes; first paid pilot with a top-5 detergent maker.",
@@ -208,7 +208,7 @@ const COMPANIES: Company[] = [
     sector: "Healthtech",
     stage: "Seed",
     round: "₹25Cr Seed",
-    status: "evaluated",
+    status: "watching",
     region: "india",
     thesis: "Vernacular tele-consults bundled with diagnostics for tier-2/3 cities.",
     keyRisks: "• Low willingness to pay\n• Doctor supply in regional languages",

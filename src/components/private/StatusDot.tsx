@@ -3,8 +3,7 @@ import { cn } from "@/lib/utils";
 
 // Pipeline stage identity (categorical slots, fixed order) — always shown with its label.
 export const STATUS_COLOR: Record<CompanyStatus, string> = {
-  watching: "var(--series-4)",
-  evaluated: "var(--series-2)",
+  watching: "var(--series-2)",
   invested: "var(--series-1)",
   passed: "var(--ink-3)",
 };

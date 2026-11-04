@@ -5,12 +5,12 @@ export type { RevolutParseResult, RevolutPosition } from "@shared/revolut";
 export type HoldingSource = "kite" | "kite_mf" | "revolut" | "manual";
 export type PortfolioScope = "india" | "revolut";
 export type Region = "global" | "india";
-export type CompanyStatus = "watching" | "evaluated" | "invested" | "passed";
+/** "watching" is shown as Tracking. */
+export type CompanyStatus = "watching" | "invested" | "passed";
 
-export const STATUS_ORDER: CompanyStatus[] = ["watching", "evaluated", "invested", "passed"];
+export const STATUS_ORDER: CompanyStatus[] = ["watching", "invested", "passed"];
 export const STATUS_LABEL: Record<CompanyStatus, string> = {
-  watching: "Watching",
-  evaluated: "Evaluating",
+  watching: "Tracking",
   invested: "Invested",
   passed: "Passed",
 };
