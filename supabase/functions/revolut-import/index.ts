@@ -76,6 +76,40 @@ Deno.serve(async (req) => {
   if (ins.error)
     return json({ error: "Saving Revolut holdings failed", detail: ins.error.message }, 500);
 
+  // Replace the Revolut trade ledger (used for holding period and XIRR). A statement covers the
+  // full history, so the newest import is the source of truth.
+  if (parsed.trades.length) {
+    const seen = new Map<string, number>();
+    const tx = parsed.trades.map((t) => {
+      const n = (seen.get(t.key) ?? 0) + 1;
+      seen.set(t.key, n);
+      return {
+        user_id: user.id,
+        source: "revolut",
+        symbol: t.symbol,
+        trade_date: t.date,
+        side: t.side,
+        quantity: t.quantity,
+        price: t.price,
+        amount: t.amount,
+        currency: t.currency,
+        external_id: n > 1 ? `${t.key}#${n}` : t.key,
+      };
+    });
+    const delTx = await db
+      .from("transactions")
+      .delete()
+      .eq("user_id", user.id)
+      .eq("source", "revolut");
+    if (delTx.error)
+      return json({ error: "Couldn't clear old Revolut trades", detail: delTx.error.message }, 500);
+    for (let i = 0; i < tx.length; i += 500) {
+      const insTx = await db.from("transactions").insert(tx.slice(i, i + 500));
+      if (insTx.error)
+        return json({ error: "Saving Revolut trades failed", detail: insTx.error.message }, 500);
+    }
+  }
+
   // Record one point per day for the value chart, in the currency holding most of the cost basis.
   const byCcy = new Map<string, { invested: number; current: number }>();
   for (const p of parsed.positions) {
@@ -97,5 +131,11 @@ Deno.serve(async (req) => {
     { onConflict: "user_id,snapshot_date,source" },
   );
 
-  return json({ ...parsed, committed: true, saved: rows.length, imported_at: now });
+  return json({
+    ...parsed,
+    trades: parsed.trades.length,
+    committed: true,
+    saved: rows.length,
+    imported_at: now,
+  });
 });

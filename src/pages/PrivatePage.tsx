@@ -15,6 +15,7 @@ import {
 import { SegmentedBar } from "@/components/charts/SegmentedBar";
 import { CompanyForm } from "@/components/private/CompanyForm";
 import { CompanyPanel } from "@/components/private/CompanyPanel";
+import { CompanyLogo } from "@/components/holdings/CompanyLogo";
 import { STATUS_COLOR, StatusDot } from "@/components/private/StatusDot";
 import { useCompanies } from "@/data/hooks";
 import { useRepo } from "@/data/RepoContext";
@@ -192,7 +193,14 @@ function Board({ companies, onOpen }: { companies: Company[]; onOpen: (id: strin
                   className="w-full rounded-2xl border border-line bg-surface p-4 text-left transition-all hover:border-ink/40"
                 >
                   <div className="flex items-start justify-between gap-2">
-                    <span className="font-semibold tracking-tight">{c.name}</span>
+                    <span className="flex min-w-0 items-center gap-2.5">
+                      <CompanyLogo
+                        name={c.name}
+                        website={c.website?.replace(/^https?:\/\//, "").replace(/\/.*$/, "")}
+                        size={32}
+                      />
+                      <span className="truncate font-semibold tracking-tight">{c.name}</span>
+                    </span>
                     {c.stage && (
                       <span className="shrink-0 rounded-sm bg-paper-2 px-1.5 py-0.5 text-[11px] text-ink-2">
                         {c.stage}

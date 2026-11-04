@@ -19,6 +19,7 @@ import { STATUS_LABEL, STATUS_ORDER, type Company, type CompanyDocument } from "
 import { moneyCompact } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { CompanyForm } from "./CompanyForm";
+import { CompanyLogo } from "@/components/holdings/CompanyLogo";
 import { StatusDot } from "./StatusDot";
 
 export function CompanyPanel({
@@ -86,9 +87,14 @@ function PanelBody({
         <p className="text-[13px] text-ink-3">
           {company.region === "india" ? "India" : "Global"} · Private
         </p>
-        <SheetTitle className="font-display mt-2 text-[32px] leading-tight">
-          {company.name}
-        </SheetTitle>
+        <div className="mt-3 flex items-center gap-4">
+          <CompanyLogo
+            name={company.name}
+            website={company.website?.replace(/^https?:\/\//, "").replace(/\/.*$/, "")}
+            size={52}
+          />
+          <SheetTitle className="font-display text-[32px] leading-tight">{company.name}</SheetTitle>
+        </div>
         <SheetDescription asChild>
           <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-ink-2">
             {company.website && (

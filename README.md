@@ -15,12 +15,14 @@ IC memos. Public landing page and demo at `/` and `/demo`; the owner's live data
 
 ## Edge functions (`supabase/functions/`)
 
-| Function         | Purpose                                                                                              |
-| ---------------- | ---------------------------------------------------------------------------------------------------- |
-| `kite-sync`      | Exchanges the Kite `request_token`, reads equity + MF holdings (read-only), records a daily snapshot |
-| `revolut-import` | Parses a Revolut statement or holdings CSV into positions (average cost); preview or commit          |
-| `summarize-memo` | Reads a PDF from `private-docs` with Claude; fills summary, takeaways, thesis, risks, metrics        |
-| `ask-dashboard`  | Chat over the signed-in user's own data                                                              |
+| Function           | Purpose                                                                                                                                                       |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `kite-sync`        | Exchanges the Kite `request_token`, reads equity + MF holdings (read-only), records a daily snapshot                                                          |
+| `revolut-import`   | Parses a Revolut statement or holdings CSV into positions (average cost); preview or commit                                                                   |
+| `summarize-memo`   | Reads a PDF from `private-docs` with Claude; fills summary, takeaways, thesis, risks, metrics                                                                 |
+| `research-company` | Claude (web search + fetch) builds a company profile: description, website/logo, latest investor presentation, 3 years of financials, market cap and net debt |
+| `write-memo`       | Claude writes an investment memo for a holding from the research and the actual position (entry, holding period, XIRR)                                        |
+| `ask-dashboard`    | Chat over the signed-in user's own data                                                                                                                       |
 
 Secrets (Supabase → Edge Functions → Secrets): `ANTHROPIC_API_KEY`, `KITE_API_KEY`, `KITE_API_SECRET`.
 
@@ -29,7 +31,7 @@ Secrets (Supabase → Edge Functions → Secrets): `ANTHROPIC_API_KEY`, `KITE_AP
 ```bash
 bun install
 bun run dev        # http://localhost:5173  (try /demo/india)
-bun run test       # Revolut parser tests
+bun run test       # parser, XIRR and holding-period tests
 bun run build
 ```
 

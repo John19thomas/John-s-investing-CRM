@@ -15,10 +15,11 @@ import {
 import { SegmentedBar } from "@/components/charts/SegmentedBar";
 import { ValueChart } from "@/components/charts/ValueChart";
 import { WeightBars } from "@/components/charts/WeightBars";
-import { HoldingsTable } from "@/components/holdings/HoldingsTable";
+import { PortfolioSection } from "@/components/holdings/PortfolioSection";
+import { bookXirr, statsBySymbol } from "@/components/holdings/positions";
 import { primaryCurrency, summarize } from "@/components/holdings/summary";
 import { ImportDialog } from "@/components/revolut/ImportDialog";
-import { useHoldings, useSnapshots } from "@/data/hooks";
+import { useHoldings, useSnapshots, useTransactions } from "@/data/hooks";
 import { invested, marketValue } from "@/data/types";
 import { money, moneyCompact, pct, signedMoney } from "@/lib/format";
 import { LoadingBlocks } from "./IndiaPage";
@@ -30,7 +31,10 @@ export default function RevolutPage() {
   const snapshots = useSnapshots("revolut");
   const [open, setOpen] = useState(false);
 
+  const txns = useTransactions("revolut");
   const all = useMemo(() => holdings.data ?? [], [holdings.data]);
+  const stats = useMemo(() => statsBySymbol(all, txns.data ?? []), [all, txns.data]);
+  const book = bookXirr(all, txns.data ?? [], stats);
   const ccy = primaryCurrency(all, "USD");
   const s = summarize(all, ccy);
   const otherCcys = [...new Set(all.map((h) => h.currency))].filter((c) => c !== ccy);
@@ -95,9 +99,23 @@ export default function RevolutPage() {
               }
             />
             <StatTile
-              label="Cost basis"
-              value={moneyCompact(s.invested, ccy)}
-              sub={<span className="text-ink-3">{s.count} positions</span>}
+              label="XIRR"
+              value={
+                book.xirr != null ? (
+                  <Delta value={book.xirr}>{pct(book.xirr * 100, 1)}</Delta>
+                ) : (
+                  <span className="text-ink-3">—</span>
+                )
+              }
+              sub={
+                <span className="text-ink-3">
+                  {book.xirr != null
+                    ? `Annualised · ${moneyCompact(s.invested, ccy)} invested`
+                    : book.covered
+                      ? `Trades cover ${book.covered} of ${book.total}`
+                      : "Import a full statement to see this"}
+                </span>
+              }
             />
             <StatTile
               label="Unrealised P&L"
@@ -123,6 +141,8 @@ export default function RevolutPage() {
             </div>
           </Card>
 
+          <PortfolioSection title="Companies" holdings={all} stats={stats} showDay={false} />
+
           <div className="grid gap-6 lg:grid-cols-3">
             <Card className="lg:col-span-2">
               <CardHeader title="Portfolio value" sub="Recorded each time you import" />
@@ -145,13 +165,6 @@ export default function RevolutPage() {
               />
             </Card>
           </div>
-
-          <Card>
-            <CardHeader title="Holdings" sub={`${all.length} positions`} />
-            <div className="mt-3">
-              <HoldingsTable holdings={all} showDay={false} />
-            </div>
-          </Card>
         </>
       )}
 

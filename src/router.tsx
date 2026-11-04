@@ -10,6 +10,7 @@ const AppShell = lazy(() => import("@/components/app/AppShell"));
 const IndiaPage = lazy(() => import("@/pages/IndiaPage"));
 const RevolutPage = lazy(() => import("@/pages/RevolutPage"));
 const PrivatePage = lazy(() => import("@/pages/PrivatePage"));
+const HoldingPage = lazy(() => import("@/pages/HoldingPage"));
 const KiteCallback = lazy(() => import("@/pages/KiteCallback"));
 const Login = lazy(() => import("@/pages/Login"));
 
@@ -29,6 +30,7 @@ const sections = [
   { path: "revolut", element: page(<RevolutPage />) },
   { path: "private", element: <Navigate to="global" replace /> },
   { path: "private/:region", element: page(<PrivatePage />) },
+  { path: "holding/:symbol", element: page(<HoldingPage />) },
 ];
 
 export const router = createBrowserRouter([

@@ -74,6 +74,80 @@ export type KiteSyncResult =
   | { status: "ok"; equityCount: number; mfCount: number; syncedAt: string }
   | { status: "needs_login"; loginUrl: string };
 
+export type JobStatus = "idle" | "running" | "done" | "error";
+
+export type CompanyProfile = {
+  symbol: string;
+  name: string | null;
+  website: string | null;
+  oneLiner: string | null;
+  description: string | null;
+  sector: string | null;
+  country: string | null;
+  isFund: boolean;
+  reportingCurrency: string | null;
+  presentation: { title: string | null; url: string | null; date: string | null };
+  irUrl: string | null;
+  marketCapM: number | null;
+  netDebtM: number | null;
+  sharesOutM: number | null;
+  valuationAsOf: string | null;
+  notes: string | null;
+  sources: { title: string; url: string }[];
+  researchStatus: JobStatus;
+  researchError: string | null;
+  researchStartedAt: string | null;
+  researchedAt: string | null;
+  memo: string | null;
+  memoStatus: JobStatus;
+  memoError: string | null;
+  memoStartedAt: string | null;
+  memoAt: string | null;
+  /** Demo mode: figures are illustrative, not real company data. */
+  illustrative?: boolean;
+};
+
+/** One reporting period, money values in millions of the reporting currency. */
+export type FinancialPeriod = {
+  label: string;
+  periodEnd: string;
+  type: "annual" | "ttm" | "quarter";
+  currency: string;
+  revenue: number | null;
+  revenueYoyPct: number | null;
+  grossProfit: number | null;
+  grossMarginPct: number | null;
+  ebitda: number | null;
+  ebitdaMarginPct: number | null;
+  cfo: number | null;
+  capex: number | null;
+  fcf: number | null;
+  netIncome: number | null;
+  sourceUrl: string | null;
+};
+
+export type Txn = {
+  source: HoldingSource;
+  symbol: string;
+  date: string;
+  side: "buy" | "sell" | "dividend" | "split";
+  quantity: number;
+  price: number;
+  amount: number | null;
+  currency: string;
+};
+
+export type TradeImport = {
+  source: HoldingSource;
+  symbol: string;
+  date: string;
+  side: "buy" | "sell";
+  quantity: number;
+  price: number;
+  currency: string;
+  externalId: string;
+};
+
 export interface Repo {
   mode: "live" | "demo";
   holdings(scope: PortfolioScope): Promise<Holding[]>;
@@ -91,6 +165,12 @@ export interface Repo {
   uploadDocument(companyId: string, file: File): Promise<CompanyDocument>;
   summarizeDocument(id: string): Promise<CompanyDocument>;
   documentUrl(doc: CompanyDocument): Promise<string | null>;
+  profiles(): Promise<CompanyProfile[]>;
+  financials(symbol: string): Promise<FinancialPeriod[]>;
+  transactions(scope: PortfolioScope): Promise<Txn[]>;
+  importTrades(rows: TradeImport[]): Promise<{ saved: number }>;
+  researchCompany(symbol: string, name: string | null, exchange: string | null): Promise<void>;
+  writeMemo(symbol: string): Promise<void>;
 }
 
 // ---- derived figures ----

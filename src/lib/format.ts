@@ -60,3 +60,23 @@ export function pct(value: number | null | undefined, digits = 2, signed = true)
 export function qty(value: number) {
   return value.toLocaleString("en-US", { maximumFractionDigits: 4 });
 }
+
+/** Values stored in millions of a currency: ₹ shown in crore, others in M / B. */
+export function moneyMillions(valueM: number | null | undefined, ccy: string | null) {
+  if (valueM == null || !Number.isFinite(valueM)) return "—";
+  const c = ccy ?? "USD";
+  const sign = valueM < 0 ? "−" : "";
+  const abs = Math.abs(valueM);
+  if (c === "INR") {
+    const cr = abs / 10;
+    return `${sign}₹${cr.toLocaleString("en-IN", { maximumFractionDigits: cr >= 100 ? 0 : 1 })} Cr`;
+  }
+  const sym = currencySymbol(c);
+  if (abs >= 1000) return `${sign}${sym}${(abs / 1000).toFixed(abs >= 100_000 ? 0 : 1)}B`;
+  return `${sign}${sym}${abs.toFixed(abs >= 100 ? 0 : 1)}M`;
+}
+
+export function multiple(x: number | null | undefined) {
+  if (x == null || !Number.isFinite(x) || x <= 0) return "—";
+  return `${x >= 100 ? x.toFixed(0) : x.toFixed(1)}×`;
+}

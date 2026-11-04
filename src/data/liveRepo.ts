@@ -4,13 +4,20 @@ import { supabase } from "@/lib/supabase";
 import type {
   CompanyRow,
   DocumentRow,
+  FinancialRow,
   HoldingRow,
   NoteRow,
+  ProfileRow,
   SnapshotRow,
+  TxnRow,
 } from "@/lib/database.types";
 import type {
   Company,
   CompanyDocument,
+  CompanyProfile,
+  FinancialPeriod,
+  JobStatus,
+  Txn,
   CompanyStatus,
   Holding,
   HoldingSource,
@@ -133,6 +140,77 @@ async function userId() {
   if (!data.user) throw new Error("You're signed out. Please sign in again.");
   return data.user.id;
 }
+
+const n = (v: number | null) => (v == null ? null : Number(v));
+
+export function toProfile(r: ProfileRow): CompanyProfile {
+  const sources = Array.isArray(r.sources)
+    ? (r.sources as { title?: unknown; url?: unknown }[])
+        .filter((x) => x && typeof x.url === "string")
+        .map((x) => ({ title: String(x.title ?? x.url), url: String(x.url) }))
+    : [];
+  return {
+    symbol: r.symbol,
+    name: r.name,
+    website: r.website,
+    oneLiner: r.one_liner,
+    description: r.description,
+    sector: r.sector,
+    country: r.country,
+    isFund: r.is_fund,
+    reportingCurrency: r.reporting_currency,
+    presentation: {
+      title: r.investor_presentation_title,
+      url: r.investor_presentation_url,
+      date: r.investor_presentation_date,
+    },
+    irUrl: r.ir_url,
+    marketCapM: n(r.market_cap_millions),
+    netDebtM: n(r.net_debt_millions),
+    sharesOutM: n(r.shares_outstanding_millions),
+    valuationAsOf: r.valuation_as_of,
+    notes: r.research_notes,
+    sources,
+    researchStatus: r.research_status as JobStatus,
+    researchError: r.research_error,
+    researchStartedAt: r.research_started_at,
+    researchedAt: r.researched_at,
+    memo: r.memo_md,
+    memoStatus: r.memo_status as JobStatus,
+    memoError: r.memo_error,
+    memoStartedAt: r.memo_started_at,
+    memoAt: r.memo_at,
+  };
+}
+
+const toPeriod = (r: FinancialRow): FinancialPeriod => ({
+  label: r.period_label,
+  periodEnd: r.period_end,
+  type: r.period_type as FinancialPeriod["type"],
+  currency: r.currency,
+  revenue: n(r.revenue),
+  revenueYoyPct: n(r.revenue_yoy_pct),
+  grossProfit: n(r.gross_profit),
+  grossMarginPct: n(r.gross_margin_pct),
+  ebitda: n(r.ebitda),
+  ebitdaMarginPct: n(r.ebitda_margin_pct),
+  cfo: n(r.cfo),
+  capex: n(r.capex),
+  fcf: n(r.free_cash_flow),
+  netIncome: n(r.net_income),
+  sourceUrl: r.source_url,
+});
+
+const toTxn = (r: TxnRow): Txn => ({
+  source: r.source as HoldingSource,
+  symbol: r.symbol,
+  date: r.trade_date,
+  side: r.side as Txn["side"],
+  quantity: Number(r.quantity),
+  price: Number(r.price),
+  amount: n(r.amount),
+  currency: r.currency,
+});
 
 export const liveRepo: Repo = {
   mode: "live",
@@ -306,5 +384,66 @@ export const liveRepo: Repo = {
       .createSignedUrl(doc.storagePath, 60 * 10);
     if (error) throw new Error(error.message);
     return data.signedUrl;
+  },
+
+  async profiles() {
+    const rows = check(await supabase.from("company_profiles").select("*"));
+    return rows.map(toProfile);
+  },
+
+  async financials(symbol) {
+    const rows = check(
+      await supabase.from("financials").select("*").eq("symbol", symbol).order("period_end"),
+    );
+    return rows.map(toPeriod);
+  },
+
+  async transactions(scope) {
+    const rows: TxnRow[] = [];
+    // Page through in case the ledger is long.
+    for (let from = 0; ; from += 1000) {
+      const page = check(
+        await supabase
+          .from("transactions")
+          .select("*")
+          .in("source", SOURCES[scope])
+          .order("trade_date")
+          .range(from, from + 999),
+      );
+      rows.push(...page);
+      if (page.length < 1000) break;
+    }
+    return rows.map(toTxn);
+  },
+
+  async importTrades(rows) {
+    let saved = 0;
+    for (let i = 0; i < rows.length; i += 500) {
+      const chunk = rows.slice(i, i + 500).map((r) => ({
+        source: r.source,
+        symbol: r.symbol,
+        trade_date: r.date,
+        side: r.side,
+        quantity: r.quantity,
+        price: r.price,
+        currency: r.currency,
+        external_id: r.externalId,
+      }));
+      ok(
+        await supabase
+          .from("transactions")
+          .upsert(chunk, { onConflict: "user_id,source,external_id", ignoreDuplicates: true }),
+      );
+      saved += chunk.length;
+    }
+    return { saved };
+  },
+
+  async researchCompany(symbol, name, exchange) {
+    await invoke("research-company", { symbol, name, exchange });
+  },
+
+  async writeMemo(symbol) {
+    await invoke("write-memo", { symbol });
   },
 };

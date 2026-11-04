@@ -84,6 +84,83 @@ export type DocumentRow = {
   user_id: string;
 };
 
+export type ProfileRow = {
+  id: string;
+  user_id: string;
+  symbol: string;
+  name: string | null;
+  website: string | null;
+  one_liner: string | null;
+  description: string | null;
+  sector: string | null;
+  country: string | null;
+  is_fund: boolean;
+  reporting_currency: string | null;
+  investor_presentation_title: string | null;
+  investor_presentation_url: string | null;
+  investor_presentation_date: string | null;
+  ir_url: string | null;
+  market_cap_millions: number | null;
+  net_debt_millions: number | null;
+  shares_outstanding_millions: number | null;
+  valuation_as_of: string | null;
+  research_notes: string | null;
+  sources: Json;
+  research_status: string;
+  research_error: string | null;
+  research_started_at: string | null;
+  researched_at: string | null;
+  memo_md: string | null;
+  memo_status: string;
+  memo_error: string | null;
+  memo_started_at: string | null;
+  memo_at: string | null;
+  updated_at: string;
+};
+
+export type FinancialRow = {
+  id: string;
+  user_id: string;
+  symbol: string;
+  company_name: string | null;
+  period_label: string;
+  period_end: string;
+  period_type: string;
+  is_estimate: boolean;
+  currency: string;
+  unit: string;
+  revenue: number | null;
+  gross_profit: number | null;
+  gross_margin_pct: number | null;
+  ebitda: number | null;
+  ebitda_margin_pct: number | null;
+  free_cash_flow: number | null;
+  revenue_yoy_pct: number | null;
+  ebitda_yoy_pct: number | null;
+  cfo: number | null;
+  capex: number | null;
+  net_income: number | null;
+  notes: string | null;
+  source_url: string | null;
+  reported_at: string | null;
+  created_at: string;
+};
+
+export type TxnRow = {
+  id: string;
+  user_id: string;
+  source: string;
+  symbol: string;
+  trade_date: string;
+  side: string;
+  quantity: number;
+  price: number;
+  amount: number | null;
+  currency: string;
+  external_id: string;
+  created_at: string;
+};
+
 type WithOptional<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
 
 export type Database = {
@@ -122,6 +199,12 @@ export type Database = {
           | "website"
         >
       >;
+      company_profiles: Table<ProfileRow, Partial<ProfileRow> & { symbol: string }>;
+      financials: Table<
+        FinancialRow,
+        Partial<FinancialRow> & { symbol: string; period_end: string; period_label: string }
+      >;
+      transactions: Table<TxnRow, WithOptional<TxnRow, "id" | "user_id" | "created_at" | "amount">>;
       company_notes: Table<NoteRow, WithOptional<NoteRow, "id" | "created_at" | "user_id">>;
       private_documents: Table<
         DocumentRow,

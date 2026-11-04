@@ -1,7 +1,18 @@
 // Demo mode: a realistic, entirely illustrative portfolio held in memory so the dashboard can
 // be shared publicly without exposing real holdings. Private companies are fictional.
 import { parseRevolutCsv } from "@shared/revolut";
-import type { Company, CompanyDocument, Holding, Note, Region, Repo, Snapshot } from "./types";
+import { demoFinancials, demoProfile, demoTrades } from "./demoResearch";
+import type {
+  Company,
+  CompanyDocument,
+  CompanyProfile,
+  Holding,
+  Note,
+  Region,
+  Repo,
+  Snapshot,
+  Txn,
+} from "./types";
 
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const uid = () => Math.random().toString(36).slice(2, 10);
@@ -279,6 +290,14 @@ export function createDemoRepo(): Repo {
   let docs = structuredClone(DOCS);
   const files = new Map<string, string>();
 
+  const MEMO_FOR = new Set(["RELIANCE", "INFY", "NVDA", "MSFT"]);
+  const profiles = new Map<string, CompanyProfile>();
+  for (const h of [...holdings.india, ...holdings.revolut])
+    profiles.set(h.symbol, demoProfile(h, MEMO_FOR.has(h.symbol)));
+  let trades: Txn[] = [...demoTrades(holdings.india), ...demoTrades(holdings.revolut)];
+  const findHolding = (symbol: string) =>
+    [...holdings.india, ...holdings.revolut].find((h) => h.symbol === symbol);
+
   return {
     mode: "demo",
     async holdings(scope) {
@@ -406,6 +425,52 @@ export function createDemoRepo(): Repo {
     },
     async documentUrl(doc) {
       return files.get(doc.id) ?? null;
+    },
+    async profiles() {
+      await wait(150);
+      return structuredClone([...profiles.values()]);
+    },
+    async financials(symbol) {
+      await wait(150);
+      const h = findHolding(symbol);
+      return h ? demoFinancials(h) : [];
+    },
+    async transactions(scope) {
+      await wait(150);
+      const sources = scope === "india" ? ["kite", "kite_mf"] : ["revolut"];
+      return structuredClone(trades.filter((t) => sources.includes(t.source)));
+    },
+    async importTrades(rows) {
+      await wait(400);
+      const symbols = new Set(rows.map((r) => r.symbol));
+      trades = [
+        ...trades.filter((t) => !symbols.has(t.symbol)),
+        ...rows.map((r) => ({ ...r, amount: null })),
+      ].sort((a, b) => a.date.localeCompare(b.date));
+      return { saved: rows.length };
+    },
+    async researchCompany(symbol) {
+      const h = findHolding(symbol);
+      const p = profiles.get(symbol);
+      if (!h || !p) return;
+      p.researchStatus = "running";
+      p.researchStartedAt = new Date().toISOString();
+      setTimeout(
+        () =>
+          profiles.set(symbol, {
+            ...demoProfile(h, !!p.memo),
+            researchedAt: new Date().toISOString(),
+          }),
+        2500,
+      );
+    },
+    async writeMemo(symbol) {
+      const h = findHolding(symbol);
+      const p = profiles.get(symbol);
+      if (!h || !p) return;
+      p.memoStatus = "running";
+      p.memoStartedAt = new Date().toISOString();
+      setTimeout(() => profiles.set(symbol, demoProfile(h, true)), 3000);
     },
   };
 }

@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRepo } from "./RepoContext";
-import type { CompanyInput, PortfolioScope, Region } from "./types";
+import type { CompanyInput, PortfolioScope, Region, TradeImport } from "./types";
 
 // Query keys are namespaced by mode so demo data never mixes with live data.
 export function useHoldings(scope: PortfolioScope) {
@@ -134,7 +134,76 @@ export function useRevolutImport() {
     mutationFn: (csv: string) => repo.commitRevolut(csv),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: [repo.mode, "holdings", "revolut"] });
+      qc.invalidateQueries({ queryKey: [repo.mode, "transactions", "revolut"] });
       qc.invalidateQueries({ queryKey: [repo.mode, "snapshots", "revolut"] });
     },
+  });
+}
+
+// ---- company research, financials and trades ----
+
+/** A job counts as running only while recent; edge functions are cut off after a few minutes. */
+export function isRunning(status: string, startedAt: string | null) {
+  return status === "running" && !!startedAt && Date.now() - Date.parse(startedAt) < 8 * 60_000;
+}
+
+export function useProfiles() {
+  const { repo } = useRepo();
+  return useQuery({
+    queryKey: [repo.mode, "profiles"],
+    queryFn: () => repo.profiles(),
+    refetchInterval: (q) =>
+      (q.state.data ?? []).some(
+        (p) =>
+          isRunning(p.researchStatus, p.researchStartedAt) ||
+          isRunning(p.memoStatus, p.memoStartedAt),
+      )
+        ? 4000
+        : false,
+  });
+}
+
+export function useFinancials(symbol: string | null, researchedAt: string | null) {
+  const { repo } = useRepo();
+  return useQuery({
+    queryKey: [repo.mode, "financials", symbol, researchedAt],
+    queryFn: () => repo.financials(symbol!),
+    enabled: !!symbol,
+  });
+}
+
+export function useTransactions(scope: PortfolioScope) {
+  const { repo } = useRepo();
+  return useQuery({
+    queryKey: [repo.mode, "transactions", scope],
+    queryFn: () => repo.transactions(scope),
+  });
+}
+
+export function useResearchCompany() {
+  const { repo } = useRepo();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (v: { symbol: string; name: string | null; exchange: string | null }) =>
+      repo.researchCompany(v.symbol, v.name, v.exchange),
+    onSettled: () => qc.invalidateQueries({ queryKey: [repo.mode, "profiles"] }),
+  });
+}
+
+export function useWriteMemo() {
+  const { repo } = useRepo();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (symbol: string) => repo.writeMemo(symbol),
+    onSettled: () => qc.invalidateQueries({ queryKey: [repo.mode, "profiles"] }),
+  });
+}
+
+export function useImportTrades() {
+  const { repo } = useRepo();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (rows: TradeImport[]) => repo.importTrades(rows),
+    onSuccess: () => qc.invalidateQueries({ queryKey: [repo.mode, "transactions"] }),
   });
 }

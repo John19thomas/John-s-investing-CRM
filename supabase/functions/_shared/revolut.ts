@@ -17,9 +17,23 @@ export type RevolutPosition = {
   currency: string;
 };
 
+export type RevolutTrade = {
+  date: string; // YYYY-MM-DD
+  symbol: string;
+  side: "buy" | "sell" | "dividend" | "split";
+  quantity: number;
+  price: number;
+  amount: number | null;
+  currency: string;
+  /** Stable id for de-duplication across re-imports. */
+  key: string;
+};
+
 export type RevolutParseResult = {
   format: "transactions" | "holdings";
   positions: RevolutPosition[];
+  /** Individual trades and dividends (transactions format only). */
+  trades: RevolutTrade[];
   warnings: string[];
   rows_read: number;
 };
@@ -120,6 +134,7 @@ export function parseRevolutCsv(text: string): RevolutParseResult {
     currency: findCol(headers, ["Currency", "Ccy"]),
     name: findCol(headers, ["Name", "Company", "Instrument name"]),
     date: findCol(headers, ["Date", "Time", "Completed Date"]),
+    total: findCol(headers, ["Total Amount", "Total", "Amount"]),
   };
   if (col.ticker < 0)
     throw new Error(`Couldn't find a Ticker/Symbol column. Columns found: ${headers.join(", ")}`);
@@ -136,6 +151,11 @@ export function parseRevolutCsv(text: string): RevolutParseResult {
     // ---- Transactions statement ----
     type Pos = { qty: number; cost: number; currency: string };
     const book = new Map<string, Pos>();
+    const trades: RevolutTrade[] = [];
+    const isoDate = (raw: string) => {
+      const t = Date.parse(raw);
+      return Number.isNaN(t) ? null : new Date(t).toISOString().slice(0, 10);
+    };
     const ordered = body
       .map((r, idx) => ({ r, idx, t: Date.parse(cell(r, col.date)) }))
       .sort((a, b) =>
@@ -159,6 +179,18 @@ export function parseRevolutCsv(text: string): RevolutParseResult {
         }
         pos.qty += Math.abs(qty);
         pos.cost += Math.abs(qty) * price.value;
+        const d = isoDate(cell(r, col.date));
+        if (d)
+          trades.push({
+            date: d,
+            symbol: ticker,
+            side: "buy",
+            quantity: Math.abs(qty),
+            price: price.value,
+            amount: null,
+            currency,
+            key: `${cell(r, col.date)}|${ticker}|${type}|${qty}|${price.value}`,
+          });
       } else if (type.startsWith("SELL")) {
         if (qty == null) {
           warnings.push(`Row ${idx + 2}: skipped ${ticker} sell with missing quantity.`);
@@ -172,11 +204,54 @@ export function parseRevolutCsv(text: string): RevolutParseResult {
         const avg = pos.qty > EPSILON ? pos.cost / pos.qty : 0;
         pos.qty -= q;
         pos.cost -= avg * q;
+        const d = isoDate(cell(r, col.date));
+        if (d && price.value != null)
+          trades.push({
+            date: d,
+            symbol: ticker,
+            side: "sell",
+            quantity: Math.abs(qty),
+            price: price.value,
+            amount: null,
+            currency,
+            key: `${cell(r, col.date)}|${ticker}|${type}|${qty}|${price.value}`,
+          });
       } else if (type.includes("SPLIT")) {
         // Revolut books a split as a quantity adjustment with no cash amount.
-        if (qty != null) pos.qty += qty;
+        if (qty != null) {
+          pos.qty += qty;
+          // Record the split so existing lots are scaled (dates and total cost unchanged).
+          const d = isoDate(cell(r, col.date));
+          if (d)
+            trades.push({
+              date: d,
+              symbol: ticker,
+              side: "split",
+              quantity: qty,
+              price: 0,
+              amount: null,
+              currency,
+              key: `${cell(r, col.date)}|${ticker}|${type}|${qty}`,
+            });
+        }
       } else {
-        continue; // DIVIDEND, CUSTODY FEE, etc. don't change the position
+        // Dividends are kept as cash flows for XIRR; fees etc. are ignored.
+        if (type.startsWith("DIVIDEND")) {
+          const amt = parseMoney(cell(r, col.total)).value;
+          const d = isoDate(cell(r, col.date));
+          if (d && amt != null)
+            trades.push({
+              date: d,
+              symbol: ticker,
+              side: "dividend",
+              quantity: 0,
+              price: 0,
+              amount: Math.abs(amt),
+              currency,
+              key: `${cell(r, col.date)}|${ticker}|${type}|${amt}`,
+            });
+        }
+        continue; // the position itself doesn't change
       }
       book.set(ticker, pos);
     }
@@ -192,7 +267,7 @@ export function parseRevolutCsv(text: string): RevolutParseResult {
         currency: p.currency,
       }))
       .sort((a, b) => a.symbol.localeCompare(b.symbol));
-    return { format: "transactions", positions, warnings, rows_read: body.length };
+    return { format: "transactions", positions, trades, warnings, rows_read: body.length };
   }
 
   // ---- Holdings snapshot ----
@@ -232,7 +307,7 @@ export function parseRevolutCsv(text: string): RevolutParseResult {
     }
   });
   const positions = [...merged.values()].sort((a, b) => a.symbol.localeCompare(b.symbol));
-  return { format: "holdings", positions, warnings, rows_read: body.length };
+  return { format: "holdings", positions, trades: [], warnings, rows_read: body.length };
 }
 
 function round(n: number, dp: number) {

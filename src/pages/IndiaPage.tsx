@@ -1,5 +1,5 @@
 import { formatDistanceToNow } from "date-fns";
-import { Link2, RefreshCw } from "lucide-react";
+import { FileUp, Link2, RefreshCw } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -16,9 +16,11 @@ import {
 } from "@/components/app/primitives";
 import { ValueChart } from "@/components/charts/ValueChart";
 import { WeightBars } from "@/components/charts/WeightBars";
-import { HoldingsTable } from "@/components/holdings/HoldingsTable";
+import { PortfolioSection } from "@/components/holdings/PortfolioSection";
+import { bookXirr, statsBySymbol } from "@/components/holdings/positions";
 import { summarize } from "@/components/holdings/summary";
-import { useHoldings, useKiteSync, useSnapshots } from "@/data/hooks";
+import { TradebookDialog } from "@/components/holdings/TradebookDialog";
+import { useHoldings, useKiteSync, useSnapshots, useTransactions } from "@/data/hooks";
 import { invested, marketValue, type Holding } from "@/data/types";
 import { money, moneyCompact, pct, signedMoney } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -29,11 +31,15 @@ export default function IndiaPage() {
   const holdings = useHoldings("india");
   const snapshots = useSnapshots("india");
   const sync = useKiteSync();
+  const txns = useTransactions("india");
   const [filter, setFilter] = useState<Filter>("all");
+  const [tradebookOpen, setTradebookOpen] = useState(false);
 
   const all = useMemo(() => holdings.data ?? [], [holdings.data]);
   const visible = filter === "all" ? all : all.filter((h) => h.source === filter);
   const s = summarize(all, "INR");
+  const stats = useMemo(() => statsBySymbol(all, txns.data ?? []), [all, txns.data]);
+  const book = bookXirr(all, txns.data ?? [], stats);
 
   const runSync = () =>
     sync.mutate(undefined, {
@@ -106,13 +112,35 @@ export default function IndiaPage() {
                 />
               }
               sub={
-                <span className="tabular text-ink-3">{money(s.value ?? s.invested, "INR", 0)}</span>
+                <span className="tabular text-ink-3">
+                  {money(s.value ?? s.invested, "INR", 0)} · {moneyCompact(s.invested, "INR")}{" "}
+                  invested
+                </span>
               }
             />
             <StatTile
-              label="Invested"
-              value={moneyCompact(s.invested, "INR")}
-              sub={<span className="text-ink-3">{s.count} positions</span>}
+              label="XIRR"
+              value={
+                book.xirr != null ? (
+                  <Delta value={book.xirr}>{pct(book.xirr * 100, 1)}</Delta>
+                ) : (
+                  <span className="text-ink-3">—</span>
+                )
+              }
+              sub={
+                book.xirr != null ? (
+                  <span className="text-ink-3">Annualised, all trades</span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setTradebookOpen(true)}
+                    className="text-left text-ink-3 underline underline-offset-2 hover:text-ink"
+                  >
+                    {book.covered ? `Trades cover ${book.covered} of ${book.total}. ` : ""}Import
+                    tradebook
+                  </button>
+                )
+              }
             />
             <StatTile
               label="Total P&L"
@@ -126,6 +154,32 @@ export default function IndiaPage() {
               sub={<Delta value={s.dayChangePct}>{pct(s.dayChangePct)} vs yesterday's close</Delta>}
             />
           </Card>
+
+          <PortfolioSection
+            title="Companies"
+            holdings={visible}
+            stats={stats}
+            controls={
+              <>
+                <SegmentedControl
+                  value={filter}
+                  onChange={setFilter}
+                  options={[
+                    { value: "all", label: "All" },
+                    { value: "kite", label: "Stocks" },
+                    { value: "kite_mf", label: "Funds" },
+                  ]}
+                />
+                <button
+                  type="button"
+                  onClick={() => setTradebookOpen(true)}
+                  className="inline-flex items-center gap-1.5 text-[13px] text-ink-2 underline decoration-line underline-offset-4 hover:text-ink"
+                >
+                  <FileUp className="size-3.5" aria-hidden /> Import tradebook
+                </button>
+              </>
+            }
+          />
 
           <div className="grid gap-6 lg:grid-cols-3">
             <Card className="lg:col-span-2">
@@ -150,29 +204,9 @@ export default function IndiaPage() {
           </div>
 
           <Movers holdings={all.filter((h) => h.source === "kite")} />
-
-          <Card>
-            <CardHeader
-              title="Holdings"
-              sub={`${visible.length} of ${all.length}`}
-              right={
-                <SegmentedControl
-                  value={filter}
-                  onChange={setFilter}
-                  options={[
-                    { value: "all", label: "All" },
-                    { value: "kite", label: "Stocks" },
-                    { value: "kite_mf", label: "Funds" },
-                  ]}
-                />
-              }
-            />
-            <div className="mt-3">
-              <HoldingsTable holdings={visible} />
-            </div>
-          </Card>
         </>
       )}
+      <TradebookDialog open={tradebookOpen} onOpenChange={setTradebookOpen} holdings={all} />
     </div>
   );
 }

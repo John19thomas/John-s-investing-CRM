@@ -2,20 +2,22 @@ import { ArrowRight, ArrowUpRight } from "lucide-react";
 import { Link } from "react-router";
 import { useAuth } from "@/auth/AuthContext";
 import { Wordmark } from "@/components/app/Wordmark";
+import { CompanyLogo } from "@/components/holdings/CompanyLogo";
+import { DEMO_INFO } from "@/data/demoResearch";
 
 const SECTIONS = [
   {
     n: "01",
     to: "/demo/india",
     title: "India equities",
-    body: "Stocks and mutual funds held with Zerodha. Synced from Kite in one click.",
+    body: "Stocks and mutual funds held with Zerodha, synced from Kite. Entry price, holding period and XIRR per holding.",
     source: "Zerodha Kite",
   },
   {
     n: "02",
     to: "/demo/revolut",
     title: "Global equities",
-    body: "Stocks held with Revolut. Updated by uploading the account statement as a CSV.",
+    body: "Stocks held with Revolut, updated from the account statement CSV. Entry price, holding period and XIRR per holding.",
     source: "Revolut CSV",
   },
   {
@@ -25,6 +27,21 @@ const SECTIONS = [
     body: "Companies invested in or under review, split into Global and India. Notes and PDF documents for each company.",
     source: "Notes and PDFs",
   },
+];
+
+const FEATURED = [
+  "RELIANCE",
+  "INFY",
+  "HDFCBANK",
+  "BHARTIARTL",
+  "TITAN",
+  "LT",
+  "NVDA",
+  "MSFT",
+  "ASML",
+  "TSM",
+  "AMZN",
+  "META",
 ];
 
 const STEPS = [
@@ -40,6 +57,11 @@ const STEPS = [
   },
   {
     n: "3",
+    title: "Research",
+    body: "Claude reads each company's filings and investor-relations site: description, latest presentation, financials and valuation, then writes a memo.",
+  },
+  {
+    n: "4",
     title: "Add context",
     body: "Paste notes and upload IC memos for private companies. Claude summarises each document and lists the key metrics.",
   },
@@ -159,6 +181,43 @@ export default function Landing() {
           </ul>
         </section>
 
+        {/* Portfolio */}
+        <section className="mx-auto max-w-[1200px] px-5 pt-24 sm:px-8 sm:pt-32">
+          <div className="flex items-baseline justify-between border-t border-ink pt-4">
+            <h2 className="text-[13px] font-medium tracking-[0.08em] text-ink-3 uppercase">
+              Portfolio
+            </h2>
+            <span className="text-[13px] text-ink-3">Demo holdings</span>
+          </div>
+          <p className="font-display mt-8 max-w-3xl text-[32px] leading-[1.1] sm:text-[44px]">
+            Every holding opens to a company page: what it does, its financials, valuation, and a
+            memo on why it is held.
+          </p>
+          <ul className="mt-12 grid grid-cols-1 border-t border-l border-line sm:grid-cols-2 lg:grid-cols-4">
+            {FEATURED.map((sym) => {
+              const info = DEMO_INFO[sym]!;
+              return (
+                <li key={sym} className="border-r border-b border-line bg-paper">
+                  <Link
+                    to={`/demo/holding/${sym}`}
+                    className="group flex h-full flex-col p-6 transition-colors hover:bg-paper-2"
+                  >
+                    <CompanyLogo name={info[0]} website={info[1]} size={52} />
+                    <h3 className="mt-6 text-[18px] font-semibold tracking-tight">{info[0]}</h3>
+                    <p className="mt-1 text-[13px] text-ink-3">{info[2]}</p>
+                    <p className="mt-3 line-clamp-3 text-[14px] leading-snug text-ink-2">
+                      {info[4]}
+                    </p>
+                    <span className="mt-auto pt-6 text-[13px] font-medium text-ink-3 transition-colors group-hover:text-ink">
+                      View company →
+                    </span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+
         {/* How it works */}
         <section className="mx-auto max-w-[1200px] px-5 pt-24 sm:px-8 sm:pt-32">
           <div className="border-t border-ink pt-4">
@@ -166,7 +225,7 @@ export default function Landing() {
               How it works
             </h2>
           </div>
-          <ol className="grid gap-10 pt-10 md:grid-cols-3 md:gap-12">
+          <ol className="grid gap-10 pt-10 md:grid-cols-2 md:gap-12 lg:grid-cols-4">
             {STEPS.map((s) => (
               <li key={s.n}>
                 <span className="tabular text-[14px] text-ink-3">{s.n}</span>

@@ -110,8 +110,8 @@ body {
 
 /* Headlines: same sans, tighter tracking, medium weight. */
 .font-display {
-  font-weight: 500;
-  letter-spacing: -0.035em;
+  font-weight: 600;
+  letter-spacing: -0.04em;
 }
 
 /* Hide scrollbars on horizontally scrolling tab strips. */
