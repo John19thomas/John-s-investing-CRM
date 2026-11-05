@@ -2,10 +2,10 @@
 @import "tw-animate-css";
 
 /*
- * Design tokens. Minimal, Sequoia-like: white page, near-black ink, one sans-serif face,
- * thin dividers, small radii, one deep green accent used sparingly.
- * Chart colours are the validated categorical slots (see dataviz palette):
- * series-1 blue, series-2 orange, series-3 aqua, series-4 violet.
+ * Design tokens. Dark royal green with white type, matching the landing page: Inter in light
+ * weights for headlines, translucent rounded cards with hairline borders, one mint accent.
+ * Chart colours are categorical slots tuned for the dark green background:
+ * series-1 mint, series-2 sky, series-3 amber, series-4 lilac.
  */
 @theme inline {
   --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
@@ -46,34 +46,34 @@
   --color-series-4: var(--series-4);
   --color-grid: var(--grid);
 
-  --radius-sm: 2px;
-  --radius-md: 3px;
-  --radius-lg: 4px;
-  --radius-xl: 4px;
-  --radius-2xl: 4px;
-  --radius-3xl: 6px;
+  --radius-sm: 10px;
+  --radius-md: 12px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+  --radius-2xl: 22px;
+  --radius-3xl: 26px;
 }
 
 :root {
-  color-scheme: light;
-  --paper: #ffffff;
-  --paper-2: #f4f4f3;
-  --surface: #ffffff;
-  --ink: #111111;
-  --ink-2: #3d3d3d;
-  --ink-3: #6b6b6b;
-  --line: #e4e4e2;
-  --grid: #ececea;
-  --brand: #0b5d3b;
+  color-scheme: dark;
+  --paper: #03140d;
+  --paper-2: #0b241a;
+  --surface: #061b12;
+  --ink: #ffffff;
+  --ink-2: #c4d0ca;
+  --ink-3: #8b9d94;
+  --line: #17342a;
+  --grid: #11291f;
+  --brand: #5ef0b0;
 
-  /* Gains/losses: text-safe steps (>= 4.5:1 on white), always paired with a sign + arrow. */
-  --gain: #0f7a2e;
-  --loss: #c7362f;
+  /* Gains/losses: readable on the green background, always paired with a sign + arrow. */
+  --gain: #5ef0b0;
+  --loss: #ff8a8a;
 
-  --series-1: #2a78d6;
-  --series-2: #eb6834;
-  --series-3: #1baf7a;
-  --series-4: #6250d6;
+  --series-1: #5ef0b0;
+  --series-2: #7cc4ff;
+  --series-3: #f5c26b;
+  --series-4: #c3a6ff;
 }
 
 @layer base {
@@ -90,7 +90,9 @@ html {
 }
 
 body {
-  background: var(--paper);
+  background:
+    radial-gradient(70% 420px at 50% 0%, rgba(22, 101, 64, 0.45), transparent 75%) no-repeat,
+    var(--paper);
   color: var(--ink);
   font-family: var(--font-sans);
   font-feature-settings: "cv11", "ss01";
@@ -108,9 +110,9 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
-/* Headlines: same sans, tighter tracking, medium weight. */
+/* Headlines: same sans, light weight, tight tracking (as on the landing page). */
 .font-display {
-  font-weight: 600;
+  font-weight: 300;
   letter-spacing: -0.04em;
 }
 

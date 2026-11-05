@@ -10,21 +10,21 @@ export function Markdown({ children }: { children: string }) {
         components={{
           h1: (p) => (
             <h2
-              className="mt-10 mb-3 text-[22px] font-semibold tracking-tight text-ink first:mt-0"
+              className="mt-10 mb-3 text-[22px] font-medium tracking-tight text-ink first:mt-0"
               {...p}
             />
           ),
           h2: (p) => (
             <h2
-              className="mt-10 mb-3 text-[20px] font-semibold tracking-tight text-ink first:mt-0"
+              className="mt-10 mb-3 text-[20px] font-medium tracking-tight text-ink first:mt-0"
               {...p}
             />
           ),
-          h3: (p) => <h3 className="mt-6 mb-2 text-[16px] font-semibold text-ink" {...p} />,
+          h3: (p) => <h3 className="mt-6 mb-2 text-[16px] font-medium text-ink" {...p} />,
           p: (p) => <p className="my-3" {...p} />,
           ul: (p) => <ul className="my-3 list-disc space-y-1.5 pl-5" {...p} />,
           ol: (p) => <ol className="my-3 list-decimal space-y-1.5 pl-5" {...p} />,
-          strong: (p) => <strong className="font-semibold text-ink" {...p} />,
+          strong: (p) => <strong className="font-medium text-ink" {...p} />,
           a: (p) => (
             <a
               className="underline underline-offset-2 hover:text-ink"

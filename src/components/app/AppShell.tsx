@@ -8,7 +8,7 @@ import { Wordmark } from "./Wordmark";
 const TABS = [
   { to: "india", label: "India equities", short: "India", icon: IndianRupee },
   { to: "revolut", label: "Global equities", short: "Global", icon: Globe2 },
-  { to: "private", label: "Private company tracker", short: "Private", icon: Building2 },
+  { to: "private", label: "Private companies", short: "Private", icon: Building2 },
 ] as const;
 
 export default function AppShell() {
@@ -29,7 +29,7 @@ export default function AppShell() {
         </div>
       )}
 
-      <header className="sticky top-0 z-30 border-b border-line bg-paper/95 backdrop-blur">
+      <header className="sticky top-0 z-30 border-b border-white/[0.06] bg-paper/70 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-[1200px] items-center gap-10 px-5 sm:px-8">
           <Wordmark to="/" />
           <nav className="hidden h-full items-stretch gap-8 md:flex" aria-label="Sections">
@@ -39,10 +39,10 @@ export default function AppShell() {
                 to={t.to}
                 className={({ isActive }) =>
                   cn(
-                    "-mb-px flex items-center border-b-2 text-[15px] transition-colors",
+                    "-mb-px flex items-center border-b-2 text-[14px] transition-colors",
                     isActive
-                      ? "border-ink font-medium text-ink"
-                      : "border-transparent text-ink-3 hover:text-ink",
+                      ? "border-brand text-ink"
+                      : "border-transparent font-light text-ink-3 hover:text-ink",
                   )
                 }
               >
@@ -77,7 +77,7 @@ export default function AppShell() {
 
       {/* Mobile tab bar */}
       <nav
-        className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-paper pb-[env(safe-area-inset-bottom)] md:hidden"
+        className="fixed inset-x-0 bottom-0 z-30 border-t border-white/[0.06] bg-paper/85 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl md:hidden"
         aria-label="Sections"
       >
         <div className="grid grid-cols-3">
@@ -88,7 +88,7 @@ export default function AppShell() {
               className={({ isActive }) =>
                 cn(
                   "flex flex-col items-center gap-1 border-t-2 py-2.5 text-[12px]",
-                  isActive ? "border-ink font-medium text-ink" : "border-transparent text-ink-3",
+                  isActive ? "border-brand font-medium text-ink" : "border-transparent text-ink-3",
                 )
               }
             >

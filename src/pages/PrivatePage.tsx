@@ -99,8 +99,8 @@ export default function PrivatePage() {
       </div>
 
       {companies.isLoading ? (
-        <div className="grid gap-4 md:grid-cols-3">
-          {[0, 1, 2].map((i) => (
+        <div className="grid gap-4 md:grid-cols-2">
+          {[0, 1].map((i) => (
             <Skeleton key={i} className="h-64" />
           ))}
         </div>
@@ -136,7 +136,7 @@ export default function PrivatePage() {
               sub={<span className="text-ink-3">at cost, {ccy}</span>}
             />
             <div className="col-span-2 border-t border-line p-5 sm:p-6 lg:col-span-1 lg:border-t-0">
-              <span className="text-[13px] text-ink-3">Pipeline mix</span>
+              <span className="text-[13px] text-ink-3">Tracking and invested</span>
               <div className="mt-3">
                 <SegmentedBar
                   segments={STATUS_ORDER.map((s) => ({
@@ -171,7 +171,7 @@ export default function PrivatePage() {
 
 function Board({ companies, onOpen }: { companies: Company[]; onOpen: (id: string) => void }) {
   return (
-    <div className="no-scrollbar -mx-4 flex snap-x gap-4 overflow-x-auto px-4 pb-2 sm:mx-0 sm:px-0 md:grid md:grid-cols-3 md:overflow-visible">
+    <div className="no-scrollbar -mx-4 flex snap-x gap-4 overflow-x-auto px-4 pb-2 sm:mx-0 sm:px-0 md:grid md:grid-cols-2 md:overflow-visible">
       {STATUS_ORDER.map((s) => {
         const col = companies.filter((c) => c.status === s);
         return (
@@ -199,7 +199,7 @@ function Board({ companies, onOpen }: { companies: Company[]; onOpen: (id: strin
                         website={c.website?.replace(/^https?:\/\//, "").replace(/\/.*$/, "")}
                         size={32}
                       />
-                      <span className="truncate font-semibold tracking-tight">{c.name}</span>
+                      <span className="truncate font-medium tracking-tight">{c.name}</span>
                     </span>
                     {c.stage && (
                       <span className="shrink-0 rounded-sm bg-paper-2 px-1.5 py-0.5 text-[11px] text-ink-2">
@@ -259,7 +259,7 @@ function ListView({ companies, onOpen }: { companies: Company[]; onOpen: (id: st
                 onClick={() => onOpen(c.id)}
                 className="cursor-pointer border-b border-line/70 transition-colors last:border-0 hover:bg-paper-2/70"
               >
-                <td className="py-3.5 pr-3 pl-6 font-semibold tracking-tight">{c.name}</td>
+                <td className="py-3.5 pr-3 pl-6 font-medium tracking-tight">{c.name}</td>
                 <td className="px-3">
                   <span className="inline-flex items-center gap-1.5">
                     <StatusDot status={c.status} />
@@ -295,7 +295,7 @@ function ListView({ companies, onOpen }: { companies: Company[]; onOpen: (id: st
               className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left"
             >
               <div className="min-w-0">
-                <div className="font-semibold">{c.name}</div>
+                <div className="font-medium">{c.name}</div>
                 <div className="truncate text-[13px] text-ink-3">
                   {[c.sector, c.stage].filter(Boolean).join(" · ")}
                 </div>

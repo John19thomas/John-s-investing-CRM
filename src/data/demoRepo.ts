@@ -169,7 +169,7 @@ const COMPANIES: Company[] = [
     sector: "Climate / energy storage",
     stage: "Series A",
     round: null,
-    status: "passed",
+    status: "watching",
     region: "global",
     thesis: "Grid-scale iron-air storage.",
     keyRisks: "• Capital intensity too high for the stage\n• Technology risk on cycle life",

@@ -1,9 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { formatDistanceToNowStrict } from "date-fns";
-import { ArrowRight, ArrowUpRight, Lock } from "lucide-react";
+import { ArrowRight, Lock } from "lucide-react";
 import type { ReactNode } from "react";
 import { Link } from "react-router";
 import { useAuth } from "@/auth/AuthContext";
+import { BrandMark } from "@/components/app/Wordmark";
 import { CompanyLogo } from "@/components/holdings/CompanyLogo";
 import { moneyCompact, pct } from "@/lib/format";
 import { supabase } from "@/lib/supabase";
@@ -100,7 +101,7 @@ export default function Landing() {
       >
         <div className="mx-auto flex h-16 max-w-[1200px] items-center gap-6 px-5 sm:px-8">
           <Link to="/" className="inline-flex items-center gap-2.5" aria-label="Home">
-            <GreenMark />
+            <BrandMark />
             <span className="text-[15px] font-medium tracking-tight">
               JT's <span className="font-light text-white/55">investing dashboard</span>
             </span>
@@ -113,10 +114,10 @@ export default function Landing() {
               Portfolio
             </a>
             <a
-              href="#pipeline"
+              href="#private"
               className="px-3 py-2 font-light text-white/60 hover:text-white max-md:hidden"
             >
-              Pipeline
+              Private
             </a>
             <Link
               to="/demo/india"
@@ -139,13 +140,13 @@ export default function Landing() {
         <section className="mx-auto flex max-w-[1200px] flex-col items-center px-5 pt-20 text-center sm:px-8 sm:pt-28">
           <LivePill at={pricesAt} loading={q.isLoading} />
           <h1 className="mt-8 text-[46px] leading-[1.02] font-light tracking-[-0.04em] sm:text-[88px]">
-            Every position and deal
+            JT's portfolio
             <br />
-            <span className="text-white/85">in one clear view</span>
+            <span className="text-white/85">and pipeline</span>
           </h1>
           <p className="mt-8 max-w-2xl text-[17px] leading-relaxed font-light text-white/60 sm:text-[20px]">
-            Listed equities across India and the US alongside a private pipeline from first look to
-            investment · live prices · quarterly intelligence on every company
+            A consolidated dashboard of listed holdings in India and the US and the private
+            companies I track and invest in
           </p>
           <div className="mt-10 flex flex-wrap justify-center gap-3">
             <Link
@@ -244,12 +245,8 @@ export default function Landing() {
         >
           <SectionHead
             kicker="Portfolio"
-            title="Positions ranked by conviction"
-            sub={
-              d?.owner
-                ? "Weights · daily moves · return on cost · amounts visible to you"
-                : "Weights · daily moves · return on cost · amounts stay private"
-            }
+            title="My portfolio"
+            sub={d?.owner ? "Amounts visible to you" : undefined}
           />
           <div className="mt-12 grid gap-4 lg:grid-cols-2">
             {(["india", "global"] as const).map((seg) => (
@@ -266,22 +263,21 @@ export default function Landing() {
           </div>
         </section>
 
-        {/* Pipeline */}
+        {/* Private companies */}
         <section
-          id="pipeline"
+          id="private"
           className="mx-auto max-w-[1200px] scroll-mt-20 px-5 pt-24 sm:px-8 sm:pt-32"
         >
           <SectionHead
-            kicker="Private pipeline"
-            title="From first look to conviction"
-            sub="Memos · decks · notes kept with each company · names visible only after sign in"
+            kicker="Private companies"
+            title="Tracking and invested"
+            sub="Names and documents visible only after sign in"
           />
-          <div className="mt-12 grid grid-cols-3 gap-3 sm:gap-4">
+          <div className="mx-auto mt-12 grid max-w-3xl grid-cols-2 gap-3 sm:gap-4">
             {(
               [
                 ["Tracking", d?.private.tracking],
                 ["Invested", d?.private.invested],
-                ["Passed", d?.private.passed],
               ] as const
             ).map(([label, n]) => (
               <Glass key={label} className="p-5 sm:p-8">
@@ -297,70 +293,13 @@ export default function Landing() {
           </div>
         </section>
 
-        {/* Company intelligence */}
-        <section className="mx-auto max-w-[1200px] px-5 pt-24 sm:px-8 sm:pt-32">
-          <SectionHead
-            kicker="Company intelligence"
-            title="Every holding on a single page"
-            sub="Refreshed automatically after each quarterly result"
-          />
-          <div className="mt-12 grid gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
-            {[
-              [
-                "Key numbers",
-                "Revenue · ARR · gross margin · EBITDA · free cash flow · live market cap",
-              ],
-              [
-                "Quarterly cheatsheet",
-                "Results · management commentary · guidance · product launches",
-              ],
-              ["Investor presentation", "The latest results deck or investor day presentation"],
-              ["Position", "Blended entry price · holding period · XIRR from actual trades"],
-              ["Valuation", "P/E · EV/EBITDA · EV/Sales · free cash flow yield on the live price"],
-              ["Investment memo", "Business · moat · risks · reason for holding"],
-            ].map(([t, b]) => (
-              <Glass key={t} className="p-6 sm:p-7">
-                <h3 className="text-[17px] font-normal tracking-tight">{t}</h3>
-                <p className="mt-2 text-[14px] leading-relaxed font-light text-white/55">{b}</p>
-              </Glass>
-            ))}
-          </div>
-          {d && d.updates.length > 0 && (
-            <ul className="mt-4 grid gap-3 sm:gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {d.updates.map((u) => (
-                <li key={u.symbol}>
-                  <Glass className="h-full p-6">
-                    <div className="flex items-center gap-3">
-                      <CompanyLogo
-                        name={u.name}
-                        website={u.website}
-                        size={32}
-                        className="border-white/10"
-                      />
-                      <div className="min-w-0">
-                        <div className="truncate text-[14px]">{u.name}</div>
-                        <div className="text-[12px] font-light text-white/45">
-                          {[u.period, u.date].filter(Boolean).join(" · ")}
-                        </div>
-                      </div>
-                    </div>
-                    <p className="mt-4 text-[14px] leading-relaxed font-light text-white/65">
-                      {u.headline?.replace(/\.$/, "").replace(/, /g, " · ")}
-                    </p>
-                  </Glass>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-
         {/* Closing */}
         <section className="mx-auto flex max-w-[1200px] flex-col items-center px-5 py-28 text-center sm:px-8 sm:py-40">
           <h2 className="text-[38px] leading-[1.05] font-light tracking-[-0.04em] sm:text-[64px]">
             See it with sample data
           </h2>
           <p className="mt-5 max-w-lg text-[16px] font-light text-white/55">
-            The full dashboard · company pages and private pipeline with fictional figures
+            Every page of the dashboard with fictional figures
           </p>
           <div className="mt-9 flex flex-wrap justify-center gap-3">
             <Link
@@ -393,17 +332,6 @@ export default function Landing() {
 }
 
 // ---- pieces ----
-
-function GreenMark() {
-  return (
-    <span aria-hidden className="grid size-6 grid-cols-2 gap-[3px]">
-      <span className="rounded-[3px] bg-[#5ef0b0]" />
-      <span className="rounded-[3px] bg-white/80" />
-      <span className="rounded-[3px] bg-white/35" />
-      <span className="rounded-full bg-[#5ef0b0]/60" />
-    </span>
-  );
-}
 
 function Backdrop() {
   return (
@@ -499,7 +427,15 @@ function LivePill({ at, loading }: { at: string | null; loading: boolean }) {
   );
 }
 
-function SectionHead({ kicker, title, sub }: { kicker: string; title: string; sub?: string }) {
+function SectionHead({
+  kicker,
+  title,
+  sub,
+}: {
+  kicker: string;
+  title: string;
+  sub?: string | undefined;
+}) {
   return (
     <div className="flex flex-col items-center text-center">
       <div className="text-[12px] tracking-[0.16em] text-[#5ef0b0]/80 uppercase">{kicker}</div>
@@ -546,17 +482,19 @@ function HoldingList({
   owner: boolean;
   linkable: boolean;
 }) {
-  const max = Math.max(...rows.map((r) => r.segmentWeightPct ?? 0), 1);
+  const cols =
+    "grid shrink-0 grid-cols-[52px_60px_52px] gap-3 text-right sm:grid-cols-[60px_64px_56px]";
   return (
     <Glass className="overflow-hidden">
-      <div className="flex items-center justify-between border-b border-white/[0.06] px-6 py-4">
+      <div className="flex items-center justify-between border-b border-white/[0.06] px-5 py-4 sm:px-6">
         <span>
           <span className="text-[15px]">{title}</span>
-          <span className="ml-2 text-[12px] font-light text-white/40">{source}</span>
+          <span className="ml-2 text-[12px] font-light text-white/40 max-sm:hidden">{source}</span>
         </span>
-        <span className="grid grid-cols-[56px_56px] gap-4 text-right text-[11px] tracking-[0.1em] text-white/40 uppercase max-sm:grid-cols-[56px]">
+        <span className={cn(cols, "text-[11px] tracking-[0.1em] text-white/40 uppercase")}>
+          <span>Weight</span>
           <span>Today</span>
-          <span className="max-sm:hidden">Return</span>
+          <span>Return</span>
         </span>
       </div>
       {loading ? (
@@ -572,43 +510,21 @@ function HoldingList({
           {rows.map((h) => {
             const inner = (
               <>
-                <CompanyLogo
-                  name={h.name}
-                  website={h.website}
-                  size={32}
-                  className="border-white/10"
-                />
+                <CompanyLogo name={h.name} website={h.website} size={32} />
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-baseline gap-2">
-                    <span className="truncate text-[14px]">{h.name}</span>
-                    <span className="shrink-0 text-[11px] font-light text-white/35 max-sm:hidden">
-                      {h.symbol}
-                    </span>
-                  </div>
-                  <div className="mt-1.5 flex items-center gap-2">
-                    <div className="h-[3px] flex-1 overflow-hidden rounded-full bg-white/[0.06]">
-                      <div
-                        className="h-full rounded-full bg-[#5ef0b0]/80"
-                        style={{ width: `${((h.segmentWeightPct ?? 0) / max) * 100}%` }}
-                      />
+                  <div className="truncate text-[14px]">{h.name}</div>
+                  {owner && h.value != null && (
+                    <div className="tabular text-[11px] font-light text-white/40">
+                      {moneyCompact(h.value, h.currency)}
                     </div>
-                    <span className="tabular w-11 shrink-0 text-right text-[11px] font-light text-white/45">
-                      {pct(h.segmentWeightPct, 1, false)}
-                    </span>
-                    {owner && h.value != null && (
-                      <span className="tabular w-16 shrink-0 text-right text-[11px] font-light text-white/45 max-sm:hidden">
-                        {moneyCompact(h.value, h.currency)}
-                      </span>
-                    )}
-                  </div>
+                  )}
                 </div>
-                <span className="grid shrink-0 grid-cols-[56px_56px] gap-4 text-right text-[14px] font-light max-sm:grid-cols-[56px]">
+                <span className={cn(cols, "text-[14px] font-light")}>
+                  <span className="tabular text-white/70">{pct(h.segmentWeightPct, 1, false)}</span>
                   <span className={cn("tabular", tone(h.dayChangePct))}>
                     {pct(h.dayChangePct, 1)}
                   </span>
-                  <span className={cn("tabular max-sm:hidden", tone(h.returnPct))}>
-                    {pct(h.returnPct, 0)}
-                  </span>
+                  <span className={cn("tabular", tone(h.returnPct))}>{pct(h.returnPct, 0)}</span>
                 </span>
               </>
             );
@@ -617,13 +533,12 @@ function HoldingList({
                 {linkable ? (
                   <Link
                     to={`/app/holding/${encodeURIComponent(h.symbol)}`}
-                    className="group flex items-center gap-3.5 px-6 py-3 transition-colors hover:bg-white/[0.03]"
+                    className="flex items-center gap-3.5 px-5 py-3 transition-colors hover:bg-white/[0.03] sm:px-6"
                   >
                     {inner}
-                    <ArrowUpRight className="size-4 shrink-0 text-white/25 group-hover:text-white/70" />
                   </Link>
                 ) : (
-                  <div className="flex items-center gap-3.5 px-6 py-3">{inner}</div>
+                  <div className="flex items-center gap-3.5 px-5 py-3 sm:px-6">{inner}</div>
                 )}
               </li>
             );

@@ -188,7 +188,7 @@ export function ImportDialog({
                 <tbody className="tabular">
                   {preview.positions.map((p) => (
                     <tr key={p.symbol} className="border-b border-line/70 last:border-0">
-                      <td className="px-4 py-2.5 font-semibold">{p.symbol}</td>
+                      <td className="px-4 py-2.5 font-medium">{p.symbol}</td>
                       <td className="px-4 py-2.5 text-right">{qty(p.quantity)}</td>
                       <td className="px-4 py-2.5 text-right">{money(p.avg_price, p.currency)}</td>
                       <td className="px-4 py-2.5 text-right">

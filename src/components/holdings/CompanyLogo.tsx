@@ -34,8 +34,8 @@ export function CompanyLogo({
   return (
     <span
       className={cn(
-        "grid shrink-0 place-items-center overflow-hidden rounded-md border border-line bg-surface",
-        !showImg && "bg-paper-2 font-semibold text-ink-2",
+        "grid shrink-0 place-items-center overflow-hidden rounded-[10px] border border-white/10",
+        showImg ? "bg-white" : "bg-paper-2 font-medium text-ink-2",
         className,
       )}
       style={{ width: size, height: size, fontSize: Math.round(size * 0.36) }}

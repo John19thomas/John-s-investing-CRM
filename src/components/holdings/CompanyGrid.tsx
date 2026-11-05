@@ -40,7 +40,7 @@ export function CompanyGrid({
                 <CompanyLogo name={name} website={p?.website} size={56} />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-start justify-between gap-2">
-                    <h3 className="truncate text-[17px] font-semibold tracking-tight">{name}</h3>
+                    <h3 className="truncate text-[17px] font-medium tracking-tight">{name}</h3>
                     <ArrowUpRight
                       className="size-4 shrink-0 text-ink-3 transition-colors group-hover:text-ink"
                       aria-hidden

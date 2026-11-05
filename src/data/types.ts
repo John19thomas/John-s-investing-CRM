@@ -6,13 +6,12 @@ export type HoldingSource = "kite" | "kite_mf" | "revolut" | "manual";
 export type PortfolioScope = "india" | "revolut";
 export type Region = "global" | "india";
 /** "watching" is shown as Tracking. */
-export type CompanyStatus = "watching" | "invested" | "passed";
+export type CompanyStatus = "watching" | "invested";
 
-export const STATUS_ORDER: CompanyStatus[] = ["watching", "invested", "passed"];
+export const STATUS_ORDER: CompanyStatus[] = ["watching", "invested"];
 export const STATUS_LABEL: Record<CompanyStatus, string> = {
   watching: "Tracking",
   invested: "Invested",
-  passed: "Passed",
 };
 
 export type Holding = {

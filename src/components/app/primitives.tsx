@@ -16,9 +16,11 @@ export function PageHeader({
   return (
     <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
       <div className="min-w-0">
-        <p className="text-[13px] text-ink-3">{eyebrow}</p>
-        <h1 className="font-display mt-2 text-[36px] leading-[1.05] sm:text-[52px]">{title}</h1>
-        {description && <div className="mt-3 max-w-2xl text-[15px] text-ink-2">{description}</div>}
+        <p className="text-[12px] tracking-[0.16em] text-brand/80 uppercase">{eyebrow}</p>
+        <h1 className="font-display mt-3 text-[38px] leading-[1.05] sm:text-[60px]">{title}</h1>
+        {description && (
+          <div className="mt-4 max-w-2xl text-[15px] font-light text-ink-2">{description}</div>
+        )}
       </div>
       {actions && <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>}
     </div>
@@ -27,7 +29,12 @@ export function PageHeader({
 
 export function Card({ className, children }: { className?: string; children: ReactNode }) {
   return (
-    <section className={cn("rounded-sm border border-line bg-surface", className)}>
+    <section
+      className={cn(
+        "rounded-[22px] border border-line bg-surface/80 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] backdrop-blur-xl",
+        className,
+      )}
+    >
       {children}
     </section>
   );
@@ -135,7 +142,9 @@ export function EmptyState({
 }) {
   return (
     <div className="flex flex-col items-center px-6 py-16 text-center">
-      <div className="grid size-12 place-items-center rounded-sm bg-paper-2 text-ink-2">{icon}</div>
+      <div className="grid size-12 place-items-center rounded-[14px] bg-paper-2 text-ink-2">
+        {icon}
+      </div>
       <h3 className="mt-4 text-lg font-medium tracking-tight">{title}</h3>
       <div className="mt-1.5 max-w-md text-[15px] text-ink-2">{body}</div>
       {action && <div className="mt-6">{action}</div>}
@@ -154,10 +163,10 @@ export function PillButton({
       type="button"
       {...props}
       className={cn(
-        "inline-flex items-center justify-center gap-2 rounded-sm px-4 py-2.5 text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50",
+        "inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50",
         variant === "solid"
-          ? "bg-ink text-paper hover:opacity-85"
-          : "border border-line bg-surface text-ink hover:bg-paper-2",
+          ? "bg-ink text-paper shadow-[0_0_32px_rgba(255,255,255,0.14)] hover:shadow-[0_0_44px_rgba(255,255,255,0.24)]"
+          : "border border-white/15 bg-transparent font-normal text-ink hover:bg-white/[0.06]",
         className,
       )}
     >
@@ -189,7 +198,7 @@ export function SegmentedControl<T extends string>({
           className={cn(
             "border-b-2 py-1 text-[13px] transition-colors",
             value === o.value
-              ? "border-ink font-medium text-ink"
+              ? "border-brand font-medium text-ink"
               : "border-transparent text-ink-3 hover:text-ink",
           )}
         >

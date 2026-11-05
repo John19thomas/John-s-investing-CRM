@@ -5,7 +5,6 @@ import { cn } from "@/lib/utils";
 export const STATUS_COLOR: Record<CompanyStatus, string> = {
   watching: "var(--series-2)",
   invested: "var(--series-1)",
-  passed: "var(--ink-3)",
 };
 
 export function StatusDot({ status, className }: { status: CompanyStatus; className?: string }) {

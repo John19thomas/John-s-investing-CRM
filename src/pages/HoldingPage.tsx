@@ -261,7 +261,7 @@ export default function HoldingPage() {
       ) : (
         <Card>
           <div className="px-6 py-10 text-center">
-            <h2 className="text-[18px] font-semibold tracking-tight">No research yet</h2>
+            <h2 className="text-[18px] font-medium tracking-tight">No research yet</h2>
             <p className="mx-auto mt-2 max-w-lg text-[15px] text-ink-2">
               Claude searches the company's investor-relations site and filings for a description,
               the latest investor presentation, three years of financials and valuation data. It
@@ -289,11 +289,7 @@ export default function HoldingPage() {
 }
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
-  return (
-    <h2 className="mb-4 text-[13px] font-medium tracking-[0.08em] text-ink-3 uppercase">
-      {children}
-    </h2>
-  );
+  return <h2 className="mb-4 text-[12px] tracking-[0.16em] text-brand/80 uppercase">{children}</h2>;
 }
 
 function ResearchButton({

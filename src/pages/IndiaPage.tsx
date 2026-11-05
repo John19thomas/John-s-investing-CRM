@@ -237,7 +237,7 @@ function Movers({ holdings }: { holdings: Holding[] }) {
                   key={h.id}
                   className="grid grid-cols-[96px_1fr_72px] items-center gap-3 text-[13px]"
                 >
-                  <span className="truncate font-semibold">{h.symbol}</span>
+                  <span className="truncate font-medium">{h.symbol}</span>
                   <div className="h-2 rounded-full bg-paper-2">
                     <div
                       className={cn("h-2 rounded-full", d >= 0 ? "bg-gain" : "bg-loss")}

@@ -220,9 +220,7 @@ function Section({
   return (
     <section className="border-b border-line px-6 py-6">
       <div className="mb-3 flex items-center justify-between gap-3">
-        <h3 className="text-[13px] font-semibold tracking-[0.08em] text-ink-2 uppercase">
-          {title}
-        </h3>
+        <h3 className="text-[13px] font-medium tracking-[0.08em] text-ink-2 uppercase">{title}</h3>
         {right}
       </div>
       {children}
