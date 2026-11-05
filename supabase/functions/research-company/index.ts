@@ -53,7 +53,8 @@ const str = { type: ["string", "null"] } as const;
 const SAVE_TOOL = {
   name: "save_research",
   description: "Save the finished research for this company. Call once, at the end.",
-  strict: true,
+  // Not strict: the schema has more nullable fields than strict mode allows (16); the result is
+  // checked by validate() before saving instead.
   eager_input_streaming: true,
   input_schema: {
     type: "object",
