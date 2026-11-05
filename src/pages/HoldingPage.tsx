@@ -385,8 +385,10 @@ function KeyMetrics({
   periods: FinancialPeriod[];
 }) {
   const ccy = profile.reportingCurrency;
-  const latest = latestPeriod(periods);
   const quarter = periods.filter((p) => p.type === "quarter").at(-1) ?? null;
+  // Fall back to the latest quarter when no annual or TTM figures were researched.
+  const annual = latestPeriod(periods);
+  const latest = annual ?? quarter;
   const mcap = marketCap(profile, holding);
   const m = (x: number | null | undefined) => moneyMillions(x ?? null, ccy);
   const margin = (x: number | null | undefined, rev: number | null | undefined) =>
@@ -400,7 +402,7 @@ function KeyMetrics({
         [
           on,
           latest?.revenueYoyPct != null ? `${pct(latest.revenueYoyPct, 1)} YoY` : null,
-          quarter?.revenue != null ? `${quarter.label}: ${m(quarter.revenue)}` : null,
+          annual && quarter?.revenue != null ? `${quarter.label}: ${m(quarter.revenue)}` : null,
         ]
           .filter(Boolean)
           .join(" · ") || null,
@@ -419,7 +421,7 @@ function KeyMetrics({
         latest?.grossMarginPct != null
           ? [
               on,
-              quarter?.grossMarginPct != null
+              annual && quarter?.grossMarginPct != null
                 ? `${quarter.label}: ${pct(quarter.grossMarginPct, 1, false)}`
                 : null,
             ]
