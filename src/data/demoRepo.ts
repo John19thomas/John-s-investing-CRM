@@ -465,6 +465,14 @@ export function createDemoRepo(): Repo {
         2500,
       );
     },
+    async ask(message, conversationId) {
+      await new Promise((r) => setTimeout(r, 600));
+      return {
+        reply: `This is the demo, so there's no live data to analyse. In your own dashboard the assistant answers questions like "${message.slice(0, 80)}" from your holdings, company research and private company notes.`,
+        conversationId: conversationId ?? "demo",
+      };
+    },
+
     async refreshQuotes() {
       return { updated: 0, failed: [] };
     },

@@ -16,7 +16,7 @@ const json = (b: unknown, s = 200) =>
     headers: { ...cors, "Content-Type": "application/json" },
   });
 
-const SYSTEM = `You are the analyst built into John's Investing Dashboard, a read-only personal portfolio app.
+const SYSTEM = `You are the analyst built into JT's investing dashboard, a read-only personal portfolio app.
 Answer using the PORTFOLIO DATA provided. Style: IC-grade, metrics-first, concise. Lead with the answer, then the numbers.
 Rules:
 - Distinguish reported figures from estimates, and cite the period (e.g. Q2 FY27) and currency/unit for every number.
@@ -28,7 +28,15 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (req.method !== "POST") return json({ error: "POST only" }, 405);
   const key = Deno.env.get("ANTHROPIC_API_KEY");
-  if (!key) return json({ error: "ANTHROPIC_API_KEY secret not set" }, 500);
+  if (!key)
+    return json(
+      {
+        error: "The chatbot needs an Anthropic API key",
+        detail: "Add ANTHROPIC_API_KEY in Supabase → Edge Functions → Secrets",
+        needs_key: true,
+      },
+      503,
+    );
 
   const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, {
     global: { headers: { Authorization: req.headers.get("Authorization") ?? "" } },
@@ -48,49 +56,69 @@ Deno.serve(async (req) => {
   if (!message) return json({ error: "Empty message" }, 400);
   const conversation_id = body.conversation_id ?? crypto.randomUUID();
 
-  const [holdings, financials, announcements, analyses, earnings, companies, docs, history] =
-    await Promise.all([
-      db
-        .from("holdings")
-        .select(
-          "source,symbol,exchange,name,quantity,avg_price,last_price,day_change_pct,pnl,currency,sector,snapshot_at",
-        ),
-      db
-        .from("financials")
-        .select(
-          "symbol,period_label,period_end,period_type,is_estimate,currency,unit,revenue,gross_margin_pct,ebitda,ebitda_margin_pct,free_cash_flow,revenue_yoy_pct,ebitda_yoy_pct,notes,source_url",
-        )
-        .order("period_end", { ascending: false })
-        .limit(200),
-      db
-        .from("announcements")
-        .select("symbol,announced_on,category,title,summary,importance,source_url")
-        .order("announced_on", { ascending: false })
-        .limit(60),
-      db
-        .from("analyses")
-        .select("symbol,kind,title,summary,created_at")
-        .order("created_at", { ascending: false })
-        .limit(25),
-      db
-        .from("earnings_events")
-        .select("symbol,event_date,fiscal_period,status")
-        .gte("event_date", new Date(Date.now() - 30 * 864e5).toISOString().slice(0, 10))
-        .order("event_date")
-        .limit(50),
-      db
-        .from("private_companies")
-        .select(
-          "id,name,sector,stage,status,context,thesis,key_risks,key_metrics,last_valuation,valuation_currency",
-        ),
-      db.from("private_documents").select("company_id,title,doc_type,summary,key_takeaways"),
-      db
-        .from("chat_messages")
-        .select("role,content")
-        .eq("conversation_id", conversation_id)
-        .order("created_at")
-        .limit(20),
-    ]);
+  const [
+    holdings,
+    financials,
+    announcements,
+    analyses,
+    earnings,
+    companies,
+    docs,
+    history,
+    profiles,
+    notes,
+  ] = await Promise.all([
+    db
+      .from("holdings")
+      .select(
+        "source,symbol,exchange,name,quantity,avg_price,last_price,day_change_pct,pnl,currency,sector,snapshot_at",
+      ),
+    db
+      .from("financials")
+      .select(
+        "symbol,period_label,period_end,period_type,is_estimate,currency,unit,revenue,gross_margin_pct,ebitda,ebitda_margin_pct,free_cash_flow,revenue_yoy_pct,ebitda_yoy_pct,notes,source_url",
+      )
+      .order("period_end", { ascending: false })
+      .limit(200),
+    db
+      .from("announcements")
+      .select("symbol,announced_on,category,title,summary,importance,source_url")
+      .order("announced_on", { ascending: false })
+      .limit(60),
+    db
+      .from("analyses")
+      .select("symbol,kind,title,summary,created_at")
+      .order("created_at", { ascending: false })
+      .limit(25),
+    db
+      .from("earnings_events")
+      .select("symbol,event_date,fiscal_period,status")
+      .gte("event_date", new Date(Date.now() - 30 * 864e5).toISOString().slice(0, 10))
+      .order("event_date")
+      .limit(50),
+    db
+      .from("private_companies")
+      .select(
+        "id,name,sector,stage,status,context,thesis,key_risks,key_metrics,last_valuation,valuation_currency",
+      ),
+    db.from("private_documents").select("company_id,title,doc_type,summary,key_takeaways"),
+    db
+      .from("chat_messages")
+      .select("role,content")
+      .eq("conversation_id", conversation_id)
+      .order("created_at")
+      .limit(20),
+    db
+      .from("company_profiles")
+      .select(
+        "symbol,name,one_liner,sector,reporting_currency,market_cap_millions,shares_outstanding_millions,arr_millions,arr_label,arr_as_of,cheatsheet,next_earnings_date,researched_at",
+      ),
+    db
+      .from("company_notes")
+      .select("company_id,body,created_at")
+      .order("created_at", { ascending: false })
+      .limit(100),
+  ]);
 
   const context = {
     today: new Date().toISOString().slice(0, 10),
@@ -101,6 +129,10 @@ Deno.serve(async (req) => {
     earnings_calendar: earnings.data ?? [],
     private_companies: companies.data ?? [],
     private_documents: docs.data ?? [],
+    private_company_notes: notes.data ?? [],
+    company_research: profiles.data ?? [],
+    notes_on_units:
+      "financials money values are in millions of the stated currency; INR 1 crore = 10 million. private_companies status 'watching' means Tracking.",
   };
 
   const messages = [

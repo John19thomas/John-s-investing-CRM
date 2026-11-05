@@ -212,6 +212,11 @@ export interface Repo {
   writeMemo(symbol: string): Promise<void>;
   /** Fetch current market prices for holdings (live mode); returns how many were updated. */
   refreshQuotes(scope: PortfolioScope): Promise<{ updated: number; failed: string[] }>;
+  /** Ask the dashboard chatbot a question about the user's own data. */
+  ask(
+    message: string,
+    conversationId: string | null,
+  ): Promise<{ reply: string; conversationId: string }>;
 }
 
 // ---- derived figures ----

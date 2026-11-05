@@ -481,6 +481,14 @@ export const liveRepo: Repo = {
     await invoke("write-memo", { symbol });
   },
 
+  async ask(message, conversationId) {
+    const { data } = await invoke<{ reply: string; conversation_id: string }>("ask-dashboard", {
+      message,
+      ...(conversationId ? { conversation_id: conversationId } : {}),
+    });
+    return { reply: data.reply, conversationId: data.conversation_id };
+  },
+
   async refreshQuotes(scope) {
     const { data } = await invoke<{ updated: number; failed: string[] }>("quotes", { scope });
     return { updated: data.updated ?? 0, failed: data.failed ?? [] };

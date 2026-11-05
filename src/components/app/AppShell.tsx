@@ -3,6 +3,7 @@ import { Link, NavLink, Outlet, useNavigate } from "react-router";
 import { useRepo } from "@/data/RepoContext";
 import { supabase } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
+import { ChatDock } from "./ChatDock";
 import { Wordmark } from "./Wordmark";
 
 const TABS = [
@@ -74,6 +75,8 @@ export default function AppShell() {
       <main className="mx-auto max-w-[1200px] px-5 pt-8 sm:px-8 sm:pt-14">
         <Outlet />
       </main>
+
+      <ChatDock />
 
       {/* Mobile tab bar */}
       <nav
