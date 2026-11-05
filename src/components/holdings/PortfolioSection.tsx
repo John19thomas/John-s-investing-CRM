@@ -72,7 +72,7 @@ export function PortfolioSection({
     <section>
       <div className="mb-4 flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
         <div>
-          <h2 className="text-[28px] font-light tracking-[-0.03em]">{title}</h2>
+          <h2 className="font-display text-[30px] sm:text-[40px]">{title}</h2>
           <p className="mt-0.5 text-[13px] text-ink-3">
             {holdings.length} holdings
             {running > 0 && ` · researching ${running}`}
@@ -121,7 +121,7 @@ export function PortfolioSection({
       {view === "companies" ? (
         <CompanyGrid holdings={holdings} profiles={byS} stats={stats} />
       ) : (
-        <div className="overflow-hidden rounded-[22px] border border-line bg-surface/80">
+        <div className="overflow-hidden rounded-[6px] border border-line bg-surface/60">
           <HoldingsTable
             holdings={holdings}
             showDay={showDay ?? true}

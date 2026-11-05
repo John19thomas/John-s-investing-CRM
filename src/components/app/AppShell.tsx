@@ -21,7 +21,7 @@ export default function AppShell() {
     <div className="min-h-dvh bg-paper pb-[calc(68px+env(safe-area-inset-bottom))] md:pb-0">
       {demo && (
         <div className="border-b border-line bg-paper-2">
-          <div className="mx-auto max-w-[1200px] px-5 py-2 text-[13px] text-ink-2 sm:px-8">
+          <div className="mx-auto max-w-[1320px] px-5 py-2 text-[13px] text-ink-2 sm:px-10">
             Demo with sample data. Private companies are fictional.{" "}
             <Link to="/" className="underline underline-offset-2 hover:text-ink">
               Back to overview
@@ -30,20 +30,18 @@ export default function AppShell() {
         </div>
       )}
 
-      <header className="sticky top-0 z-30 border-b border-white/[0.06] bg-paper/70 backdrop-blur-xl">
-        <div className="mx-auto flex h-16 max-w-[1200px] items-center gap-10 px-5 sm:px-8">
+      <header className="sticky top-0 z-30 bg-paper/90 backdrop-blur">
+        <div className="mx-auto flex h-20 max-w-[1320px] items-center gap-10 px-5 sm:px-10">
           <Wordmark to="/" />
-          <nav className="hidden h-full items-stretch gap-8 md:flex" aria-label="Sections">
+          <nav className="ml-auto hidden items-center gap-9 md:flex" aria-label="Sections">
             {TABS.map((t) => (
               <NavLink
                 key={t.to}
                 to={t.to}
                 className={({ isActive }) =>
                   cn(
-                    "-mb-px flex items-center border-b-2 text-[14px] transition-colors",
-                    isActive
-                      ? "border-brand text-ink"
-                      : "border-transparent font-light text-ink-3 hover:text-ink",
+                    "label-caps transition-colors",
+                    isActive ? "text-ink" : "text-ink-3 hover:text-ink",
                   )
                 }
               >
@@ -51,7 +49,7 @@ export default function AppShell() {
               </NavLink>
             ))}
           </nav>
-          <div className="ml-auto text-[15px]">
+          <div className="label-caps ml-auto md:ml-0">
             {demo ? (
               <Link to="/login" className="text-ink-2 hover:text-ink">
                 Sign in
@@ -72,7 +70,7 @@ export default function AppShell() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-[1200px] px-5 pt-8 sm:px-8 sm:pt-14">
+      <main className="mx-auto max-w-[1320px] px-5 pt-8 sm:px-10 sm:pt-16">
         <Outlet />
       </main>
 

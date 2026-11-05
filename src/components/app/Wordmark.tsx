@@ -17,15 +17,12 @@ export function Wordmark({ to = "/", className }: { to?: string; className?: str
   return (
     <Link
       to={to}
-      className={cn("inline-flex items-center gap-2.5 whitespace-nowrap", className)}
+      className={cn("inline-flex items-center gap-3 whitespace-nowrap", className)}
       aria-label="JT's investing dashboard, home"
     >
-      <BrandMark />
-      <span className="text-[17px] font-medium tracking-tight">
-        JT's{" "}
-        <span className="font-light text-ink-3">
-          <span className="max-[420px]:hidden">investing </span>dashboard
-        </span>
+      <BrandMark className="size-5 gap-[2px]" />
+      <span className="text-[14px] font-bold tracking-[0.22em] uppercase">
+        JT<span className="max-[420px]:hidden"> · Investing</span>
       </span>
     </Link>
   );

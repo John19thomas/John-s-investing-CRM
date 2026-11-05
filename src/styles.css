@@ -2,13 +2,15 @@
 @import "tw-animate-css";
 
 /*
- * Design tokens. Dark royal green with white type, matching the landing page: Inter in light
- * weights for headlines, translucent rounded cards with hairline borders, one mint accent.
+ * Design tokens. Flat deep green with white type. Heavy uppercase Inter for display
+ * headlines, a serif (Newsreader) for statements, small tracked uppercase labels, hairline
+ * dividers instead of cards, one green accent.
  * Chart colours are categorical slots tuned for the dark green background:
  * series-1 mint, series-2 sky, series-3 amber, series-4 lilac.
  */
 @theme inline {
   --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Newsreader Variable", ui-serif, Georgia, serif;
 
   --color-background: var(--paper);
   --color-foreground: var(--ink);
@@ -46,31 +48,31 @@
   --color-series-4: var(--series-4);
   --color-grid: var(--grid);
 
-  --radius-sm: 10px;
-  --radius-md: 12px;
-  --radius-lg: 14px;
-  --radius-xl: 18px;
-  --radius-2xl: 22px;
-  --radius-3xl: 26px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 8px;
+  --radius-2xl: 10px;
+  --radius-3xl: 12px;
 }
 
 :root {
   color-scheme: dark;
-  --paper: #03140d;
-  --paper-2: #0b241a;
-  --surface: #061b12;
+  --paper: #0a1c15;
+  --paper-2: #10271e;
+  --surface: #0c2119;
   --ink: #ffffff;
   --ink-2: #c4d0ca;
   --ink-3: #8b9d94;
-  --line: #17342a;
-  --grid: #11291f;
-  --brand: #5ef0b0;
+  --line: #1d3a2e;
+  --grid: #142d23;
+  --brand: #6fcf8f;
 
   /* Gains/losses: readable on the green background, always paired with a sign + arrow. */
-  --gain: #5ef0b0;
+  --gain: #6fdc95;
   --loss: #ff8a8a;
 
-  --series-1: #5ef0b0;
+  --series-1: #6fcf8f;
   --series-2: #7cc4ff;
   --series-3: #f5c26b;
   --series-4: #c3a6ff;
@@ -90,9 +92,7 @@ html {
 }
 
 body {
-  background:
-    radial-gradient(70% 420px at 50% 0%, rgba(22, 101, 64, 0.45), transparent 75%) no-repeat,
-    var(--paper);
+  background: var(--paper);
   color: var(--ink);
   font-family: var(--font-sans);
   font-feature-settings: "cv11", "ss01";
@@ -110,10 +110,37 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
-/* Headlines: same sans, light weight, tight tracking (as on the landing page). */
+/* Display headlines: heavy uppercase Inter, set tight. */
 .font-display {
-  font-weight: 300;
-  letter-spacing: -0.04em;
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  line-height: 0.92;
+  text-transform: uppercase;
+}
+
+/* Statements: large serif. */
+.font-serif {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+
+/* Small tracked uppercase labels (navigation, section kickers). */
+.label-caps {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+/* Giant outlined lettering used as background art. */
+.outline-type {
+  color: transparent;
+  -webkit-text-stroke: 1.5px rgba(111, 207, 143, 0.35);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: -0.03em;
+  line-height: 0.85;
 }
 
 /* Hide scrollbars on horizontally scrolling tab strips. */

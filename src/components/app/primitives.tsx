@@ -16,10 +16,12 @@ export function PageHeader({
   return (
     <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
       <div className="min-w-0">
-        <p className="text-[12px] tracking-[0.16em] text-brand/80 uppercase">{eyebrow}</p>
-        <h1 className="font-display mt-3 text-[38px] leading-[1.05] sm:text-[60px]">{title}</h1>
+        <p className="label-caps text-brand">{eyebrow}</p>
+        <h1 className="font-display mt-4 text-[44px] sm:text-[84px]">{title}</h1>
         {description && (
-          <div className="mt-4 max-w-2xl text-[15px] font-light text-ink-2">{description}</div>
+          <div className="font-serif mt-5 max-w-2xl text-[19px] leading-snug text-ink-2 sm:text-[22px]">
+            {description}
+          </div>
         )}
       </div>
       {actions && <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>}
@@ -29,12 +31,7 @@ export function PageHeader({
 
 export function Card({ className, children }: { className?: string; children: ReactNode }) {
   return (
-    <section
-      className={cn(
-        "rounded-[22px] border border-line bg-surface/80 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] backdrop-blur-xl",
-        className,
-      )}
-    >
+    <section className={cn("rounded-[6px] border border-line bg-surface/60", className)}>
       {children}
     </section>
   );
@@ -52,7 +49,7 @@ export function CardHeader({
   return (
     <div className="flex items-start justify-between gap-4 px-5 pt-5 sm:px-6">
       <div>
-        <h2 className="text-[15px] font-medium tracking-tight">{title}</h2>
+        <h2 className="label-caps text-ink-2">{title}</h2>
         {sub && <p className="mt-0.5 text-[13px] text-ink-3">{sub}</p>}
       </div>
       {right}
@@ -109,13 +106,13 @@ export function StatTile({
 }) {
   return (
     <div className={cn("flex min-w-0 flex-col gap-1.5 p-5 sm:p-6", className)}>
-      <span className="text-[13px] text-ink-3">{label}</span>
+      <span className="label-caps text-[11px] text-ink-3">{label}</span>
       <span
         className={cn(
-          "truncate font-medium tracking-tight",
+          "mt-2 truncate font-extrabold tracking-[-0.04em]",
           hero
-            ? "text-[40px] leading-none sm:text-[48px]"
-            : "text-2xl leading-tight sm:text-[26px]",
+            ? "text-[44px] leading-none sm:text-[56px]"
+            : "text-[28px] leading-tight sm:text-[32px]",
         )}
       >
         {value}
@@ -142,7 +139,7 @@ export function EmptyState({
 }) {
   return (
     <div className="flex flex-col items-center px-6 py-16 text-center">
-      <div className="grid size-12 place-items-center rounded-[14px] bg-paper-2 text-ink-2">
+      <div className="grid size-12 place-items-center rounded-[6px] bg-paper-2 text-ink-2">
         {icon}
       </div>
       <h3 className="mt-4 text-lg font-medium tracking-tight">{title}</h3>
@@ -163,10 +160,10 @@ export function PillButton({
       type="button"
       {...props}
       className={cn(
-        "inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50",
+        "label-caps inline-flex items-center justify-center gap-2 rounded-[4px] px-5 py-3 transition-all disabled:pointer-events-none disabled:opacity-50",
         variant === "solid"
-          ? "bg-ink text-paper shadow-[0_0_32px_rgba(255,255,255,0.14)] hover:shadow-[0_0_44px_rgba(255,255,255,0.24)]"
-          : "border border-white/15 bg-transparent font-normal text-ink hover:bg-white/[0.06]",
+          ? "bg-ink text-paper hover:bg-brand"
+          : "border border-white/25 bg-transparent text-ink hover:border-white/60",
         className,
       )}
     >

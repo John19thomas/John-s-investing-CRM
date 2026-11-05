@@ -73,11 +73,11 @@ export function ChatDock() {
         <div
           role="dialog"
           aria-label="Assistant"
-          className="fixed inset-x-3 bottom-[calc(152px+env(safe-area-inset-bottom))] z-40 flex max-h-[min(640px,70dvh)] flex-col overflow-hidden rounded-[22px] border border-line bg-surface/95 shadow-2xl backdrop-blur-xl md:inset-x-auto md:right-6 md:bottom-24 md:w-[420px]"
+          className="fixed inset-x-3 bottom-[calc(152px+env(safe-area-inset-bottom))] z-40 flex max-h-[min(640px,70dvh)] flex-col overflow-hidden rounded-[8px] border border-line bg-surface/95 shadow-2xl backdrop-blur-xl md:inset-x-auto md:right-6 md:bottom-24 md:w-[420px]"
         >
           <div className="flex items-center justify-between border-b border-line px-5 py-4">
             <div>
-              <div className="text-[15px]">Ask the dashboard</div>
+              <div className="label-caps">Ask the dashboard</div>
               <div className="text-[12px] font-light text-ink-3">
                 Answers from your holdings · research · private companies
               </div>
@@ -104,7 +104,7 @@ export function ChatDock() {
                     key={s}
                     type="button"
                     onClick={() => send(s)}
-                    className="block w-full rounded-[14px] border border-line px-4 py-3 text-left text-[14px] font-light text-ink-2 transition-colors hover:bg-paper-2 hover:text-ink"
+                    className="block w-full rounded-[6px] border border-line px-4 py-3 text-left text-[14px] font-light text-ink-2 transition-colors hover:bg-paper-2 hover:text-ink"
                   >
                     {s}
                   </button>
@@ -114,7 +114,7 @@ export function ChatDock() {
             {msgs.map((m, i) =>
               m.role === "user" ? (
                 <div key={i} className="flex justify-end">
-                  <div className="max-w-[85%] rounded-[16px] bg-ink px-4 py-2.5 text-[14px] text-paper">
+                  <div className="max-w-[85%] rounded-[8px] bg-ink px-4 py-2.5 text-[14px] text-paper">
                     {m.content}
                   </div>
                 </div>
@@ -157,7 +157,7 @@ export function ChatDock() {
               }}
               rows={1}
               placeholder="Ask about your portfolio"
-              className="max-h-32 min-h-[44px] flex-1 resize-none rounded-[14px] border border-line bg-paper px-4 py-3 text-[14px] font-light text-ink placeholder:text-ink-3 focus:border-brand/60 focus:outline-none"
+              className="max-h-32 min-h-[44px] flex-1 resize-none rounded-[6px] border border-line bg-paper px-4 py-3 text-[14px] font-light text-ink placeholder:text-ink-3 focus:border-brand/60 focus:outline-none"
             />
             <button
               type="submit"

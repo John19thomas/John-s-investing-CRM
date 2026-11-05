@@ -111,7 +111,7 @@ export default function HoldingPage() {
         <div className="flex items-start gap-5">
           <CompanyLogo name={name} website={profile?.website} size={72} />
           <div className="min-w-0">
-            <h1 className="font-display text-[34px] leading-tight sm:text-[46px]">{name}</h1>
+            <h1 className="font-display text-[36px] sm:text-[64px]">{name}</h1>
             <p className="mt-1 text-[14px] text-ink-3">
               {[
                 holding.source === "kite_mf" ? "Mutual fund" : symbol,
@@ -123,7 +123,9 @@ export default function HoldingPage() {
                 .join(" · ")}
             </p>
             {profile?.oneLiner && (
-              <p className="mt-3 max-w-2xl text-[17px] text-ink-2">{profile.oneLiner}</p>
+              <p className="font-serif mt-4 max-w-2xl text-[21px] leading-snug text-ink-2">
+                {profile.oneLiner}
+              </p>
             )}
             <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-[14px]">
               {profile?.website && (
@@ -289,7 +291,7 @@ export default function HoldingPage() {
 }
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
-  return <h2 className="mb-4 text-[12px] tracking-[0.16em] text-brand/80 uppercase">{children}</h2>;
+  return <h2 className="label-caps mb-5 text-brand">{children}</h2>;
 }
 
 function ResearchButton({
