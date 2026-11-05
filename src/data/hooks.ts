@@ -214,3 +214,25 @@ export function useImportTrades() {
     onSuccess: () => qc.invalidateQueries({ queryKey: [repo.mode, "transactions"] }),
   });
 }
+
+/**
+ * Live prices: asks the server to re-quote this book's holdings every minute while the page is
+ * visible, then reloads the holdings. No-op in demo mode.
+ */
+export function useLiveQuotes(scope: PortfolioScope) {
+  const { repo } = useRepo();
+  const qc = useQueryClient();
+  return useQuery({
+    queryKey: [repo.mode, "quotes", scope],
+    queryFn: async () => {
+      const r = await repo.refreshQuotes(scope);
+      if (r.updated) await qc.invalidateQueries({ queryKey: [repo.mode, "holdings"] });
+      return { ...r, at: new Date().toISOString() };
+    },
+    enabled: repo.mode === "live",
+    refetchInterval: 60_000,
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: true,
+    retry: 1,
+  });
+}

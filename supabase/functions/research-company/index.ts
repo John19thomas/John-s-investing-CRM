@@ -2,8 +2,12 @@
 //  - a profile (what it does, website for the logo, sector, latest investor presentation, IR page)
 //  - key financials for recent fiscal years (revenue, gross profit, EBITDA, CFO, capex, net income)
 //  - market cap / net debt / shares outstanding for valuation multiples
+//  - a quarterly cheatsheet from the latest results: headline numbers, management commentary,
+//    guidance, product launches and other material updates; ARR where the company discloses it
 // POST { symbol, name?, exchange? } -> 202 { status: "running" }; progress is written to
 // company_profiles.research_status, which the dashboard polls.
+// The scheduler (public.refresh_stale_research, pg_cron) calls this with x-cron-secret and
+// { user_id } to refresh research after each quarterly result.
 // Secrets: ANTHROPIC_API_KEY (required), RESEARCH_MODEL (optional, default claude-opus-5-5).
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2";
@@ -34,6 +38,13 @@ Rules:
 - one_liner: plain English, under 20 words, what the company actually does. No adjectives like "leading".
 - The investor presentation must be the most recent one you can find (results deck or investor day),
   with a direct link (PDF or the page hosting it).
+- latest_quarter: the most recent reported quarter (or half-year if the company reports half-yearly).
+- cheatsheet: built from the latest results release, earnings call and investor presentation.
+  Management commentary should be close paraphrases of what management said, attributed (e.g. "CEO: ...").
+  Guidance: only what the company itself guided, with the period it applies to. Product launches and
+  other updates: only material items from the last ~3 months. Keep each bullet under 30 words.
+- arr: only if the company itself reports ARR or an equivalent recurring-revenue run-rate metric; otherwise null.
+- next_earnings_date: the next scheduled results date if announced, else null.
 - When finished, call save_research exactly once with everything you found.`;
 
 const num = { type: ["number", "null"] } as const;
@@ -65,6 +76,10 @@ const SAVE_TOOL = {
       "valuation_as_of",
       "sources",
       "notes",
+      "latest_quarter",
+      "cheatsheet",
+      "arr",
+      "next_earnings_date",
     ],
     properties: {
       name: { type: "string" },
@@ -136,6 +151,85 @@ const SAVE_TOOL = {
         },
       },
       notes: { type: "string", description: "Caveats, gaps, definitions used." },
+      latest_quarter: {
+        anyOf: [
+          {
+            type: "object",
+            additionalProperties: false,
+            required: [
+              "period_label",
+              "period_end",
+              "revenue",
+              "gross_profit",
+              "ebitda",
+              "cfo",
+              "capex",
+              "net_income",
+              "source_url",
+            ],
+            properties: {
+              period_label: { type: "string", description: "e.g. Q2 FY26, Q3 2026" },
+              period_end: { type: "string", description: "YYYY-MM-DD" },
+              revenue: num,
+              gross_profit: num,
+              ebitda: num,
+              cfo: num,
+              capex: num,
+              net_income: num,
+              source_url: str,
+            },
+          },
+          { type: "null" },
+        ],
+      },
+      cheatsheet: {
+        type: "object",
+        additionalProperties: false,
+        required: [
+          "period",
+          "results_date",
+          "headline",
+          "highlights",
+          "management_commentary",
+          "guidance",
+          "product_launches",
+          "other_updates",
+        ],
+        properties: {
+          period: { ...str, description: "Quarter covered, e.g. Q2 FY26" },
+          results_date: { ...str, description: "YYYY-MM-DD the results were published" },
+          headline: { type: "string", description: "One sentence: what mattered this quarter." },
+          highlights: {
+            type: "array",
+            items: { type: "string" },
+            description: "3-6 key numbers with growth rates.",
+          },
+          management_commentary: { type: "array", items: { type: "string" } },
+          guidance: { type: "array", items: { type: "string" } },
+          product_launches: { type: "array", items: { type: "string" } },
+          other_updates: {
+            type: "array",
+            items: { type: "string" },
+            description: "M&A, capital allocation, management changes, regulation.",
+          },
+        },
+      },
+      arr: {
+        anyOf: [
+          {
+            type: "object",
+            additionalProperties: false,
+            required: ["value_millions", "label", "as_of"],
+            properties: {
+              value_millions: { type: "number" },
+              label: { type: "string", description: "The company's own name for the metric." },
+              as_of: { type: "string" },
+            },
+          },
+          { type: "null" },
+        ],
+      },
+      next_earnings_date: { ...str, description: "YYYY-MM-DD" },
     },
   },
 } as const;
@@ -159,7 +253,7 @@ type Research = {
   financials: {
     period_label: string;
     period_end: string;
-    period_type: "annual" | "ttm";
+    period_type: "annual" | "ttm" | "quarter";
     revenue: number | null;
     gross_profit: number | null;
     ebitda: number | null;
@@ -174,6 +268,29 @@ type Research = {
   valuation_as_of: string | null;
   sources: { title: string; url: string }[];
   notes: string;
+  latest_quarter?: {
+    period_label: string;
+    period_end: string;
+    revenue: number | null;
+    gross_profit: number | null;
+    ebitda: number | null;
+    cfo: number | null;
+    capex: number | null;
+    net_income: number | null;
+    source_url: string | null;
+  } | null;
+  cheatsheet?: {
+    period: string | null;
+    results_date: string | null;
+    headline: string;
+    highlights: string[];
+    management_commentary: string[];
+    guidance: string[];
+    product_launches: string[];
+    other_updates: string[];
+  } | null;
+  arr?: { value_millions: number; label: string; as_of: string } | null;
+  next_earnings_date?: string | null;
 };
 
 // The streamed tool input is parsed tolerantly, so check its shape before saving.
@@ -225,8 +342,8 @@ async function research(
         output_config: { effort: "medium" },
         system: SYSTEM,
         tools: [
-          { type: "web_search_20260209", name: "web_search", max_uses: 8 },
-          { type: "web_fetch_20260209", name: "web_fetch", max_uses: 4 },
+          { type: "web_search_20260209", name: "web_search", max_uses: 12 },
+          { type: "web_fetch_20260209", name: "web_fetch", max_uses: 6 },
           SAVE_TOOL,
         ],
         messages,
@@ -275,6 +392,11 @@ async function save(db: SupabaseClient, userId: string, symbol: string, r: Resea
       shares_outstanding_millions: r.shares_outstanding_millions,
       valuation_as_of: isDate(r.valuation_as_of) ? r.valuation_as_of : null,
       research_notes: r.notes,
+      cheatsheet: r.cheatsheet && typeof r.cheatsheet === "object" ? r.cheatsheet : null,
+      arr_millions: r.arr?.value_millions ?? null,
+      arr_label: r.arr?.label ?? null,
+      arr_as_of: r.arr?.as_of ?? null,
+      next_earnings_date: isDate(r.next_earnings_date) ? r.next_earnings_date : null,
       sources: r.sources.slice(0, 20),
       research_status: "done",
       research_error: null,
@@ -286,7 +408,9 @@ async function save(db: SupabaseClient, userId: string, symbol: string, r: Resea
   if (profile.error) throw new Error(profile.error.message);
 
   await db.from("financials").delete().eq("user_id", userId).eq("symbol", symbol);
-  const periods = r.financials
+  const q = r.latest_quarter;
+  const quarter = q && isDate(q.period_end) ? [{ ...q, period_type: "quarter" as const }] : [];
+  const periods = [...r.financials, ...quarter]
     .filter((f) => isDate(f.period_end))
     .sort((a, b) => a.period_end.localeCompare(b.period_end));
   const rows = periods.map((f) => {
@@ -336,26 +460,49 @@ Deno.serve(async (req) => {
   if (!Deno.env.get("ANTHROPIC_API_KEY"))
     return json({ error: "ANTHROPIC_API_KEY secret not set" }, 500);
 
-  const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, {
-    global: { headers: { Authorization: req.headers.get("Authorization") ?? "" } },
-  });
-  const {
-    data: { user },
-  } = await db.auth.getUser();
-  if (!user) return json({ error: "Not signed in" }, 401);
-
-  let body: { symbol?: string; name?: string; exchange?: string } = {};
+  let body: { symbol?: string; name?: string; exchange?: string; user_id?: string } = {};
   try {
     body = await req.json();
   } catch {
     /* empty */
   }
+
+  // Two callers: the signed-in user (RLS applies), or the scheduler with the server-only secret.
+  let db: SupabaseClient;
+  let userId: string;
+  const cronSecret = req.headers.get("x-cron-secret");
+  if (cronSecret) {
+    const admin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+      { auth: { persistSession: false } },
+    );
+    const { data: cfg } = await admin
+      .from("app_config")
+      .select("value")
+      .eq("key", "cron_secret")
+      .maybeSingle();
+    if (!cfg?.value || cfg.value !== cronSecret || !body.user_id)
+      return json({ error: "Not allowed" }, 401);
+    db = admin;
+    userId = body.user_id;
+  } else {
+    db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, {
+      global: { headers: { Authorization: req.headers.get("Authorization") ?? "" } },
+    });
+    const {
+      data: { user },
+    } = await db.auth.getUser();
+    if (!user) return json({ error: "Not signed in" }, 401);
+    userId = user.id;
+  }
+
   const symbol = (body.symbol ?? "").trim().toUpperCase();
   if (!symbol) return json({ error: "symbol is required" }, 400);
 
   const start = await db.from("company_profiles").upsert(
     {
-      user_id: user.id,
+      user_id: userId,
       symbol,
       ...(body.name ? { name: body.name } : {}),
       research_status: "running",
@@ -371,7 +518,7 @@ Deno.serve(async (req) => {
   const job = (async () => {
     try {
       const r = await research(symbol, body.name ?? null, body.exchange ?? null);
-      await save(db, user.id, symbol, r);
+      await save(db, userId, symbol, r);
     } catch (e) {
       const message =
         e instanceof Anthropic.APIError ? `Claude API error: ${e.message}` : (e as Error).message;
@@ -382,7 +529,7 @@ Deno.serve(async (req) => {
           research_error: message,
           updated_at: new Date().toISOString(),
         })
-        .eq("user_id", user.id)
+        .eq("user_id", userId)
         .eq("symbol", symbol);
     }
   })();

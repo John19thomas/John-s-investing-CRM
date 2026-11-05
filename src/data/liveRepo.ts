@@ -14,6 +14,7 @@ import type {
 import type {
   Company,
   CompanyDocument,
+  Cheatsheet,
   CompanyProfile,
   FinancialPeriod,
   JobStatus,
@@ -47,6 +48,8 @@ function toHolding(r: HoldingRow): Holding {
     dayChangePct: r.day_change_pct == null ? null : Number(r.day_change_pct),
     currency: r.currency,
     snapshotAt: r.snapshot_at,
+    priceAt: r.price_at ?? null,
+    priceSource: r.price_source ?? null,
   };
 }
 
@@ -182,6 +185,32 @@ export function toProfile(r: ProfileRow): CompanyProfile {
     memoError: r.memo_error,
     memoStartedAt: r.memo_started_at,
     memoAt: r.memo_at,
+    cheatsheet: toCheatsheet(r.cheatsheet),
+    arr:
+      r.arr_millions != null
+        ? { valueM: Number(r.arr_millions), label: r.arr_label ?? null, asOf: r.arr_as_of ?? null }
+        : null,
+    nextEarningsDate: r.next_earnings_date ?? null,
+  };
+}
+
+function toCheatsheet(x: unknown): Cheatsheet | null {
+  if (!x || typeof x !== "object" || Array.isArray(x)) return null;
+  const o = x as Record<string, unknown>;
+  const list = (v: unknown) =>
+    Array.isArray(v) ? v.filter((s): s is string => typeof s === "string" && !!s.trim()) : [];
+  const str = (v: unknown) => (typeof v === "string" && v.trim() ? v : null);
+  const headline = str(o["headline"]);
+  if (!headline) return null;
+  return {
+    period: str(o["period"]),
+    resultsDate: str(o["results_date"]),
+    headline,
+    highlights: list(o["highlights"]),
+    managementCommentary: list(o["management_commentary"]),
+    guidance: list(o["guidance"]),
+    productLaunches: list(o["product_launches"]),
+    otherUpdates: list(o["other_updates"]),
   };
 }
 
@@ -450,5 +479,10 @@ export const liveRepo: Repo = {
 
   async writeMemo(symbol) {
     await invoke("write-memo", { symbol });
+  },
+
+  async refreshQuotes(scope) {
+    const { data } = await invoke<{ updated: number; failed: string[] }>("quotes", { scope });
+    return { updated: data.updated ?? 0, failed: data.failed ?? [] };
   },
 };

@@ -17,6 +17,7 @@ import {
 import { ValueChart } from "@/components/charts/ValueChart";
 import { WeightBars } from "@/components/charts/WeightBars";
 import { CoverageNotice } from "@/components/holdings/CoverageNotice";
+import { LiveBadge } from "@/components/holdings/LiveBadge";
 import { PortfolioSection } from "@/components/holdings/PortfolioSection";
 import { bookXirr, statsBySymbol } from "@/components/holdings/positions";
 import { summarize } from "@/components/holdings/summary";
@@ -66,10 +67,13 @@ export default function IndiaPage() {
         title="India equities"
         description={
           s.lastSynced ? (
-            <>
-              Live from Zerodha Kite · last synced{" "}
-              {formatDistanceToNow(new Date(s.lastSynced), { addSuffix: true })}
-            </>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+              <span>
+                Holdings from Zerodha Kite · last synced{" "}
+                {formatDistanceToNow(new Date(s.lastSynced), { addSuffix: true })}
+              </span>
+              <LiveBadge scope="india" holdings={holdings.data ?? []} />
+            </div>
           ) : (
             "Stocks read directly from your Zerodha Kite account. Mutual funds and bonds are excluded."
           )

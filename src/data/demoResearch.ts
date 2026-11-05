@@ -275,6 +275,24 @@ export function demoProfile(h: Holding, withMemo: boolean): CompanyProfile {
     memoError: null,
     memoStartedAt: null,
     memoAt: withMemo && info ? now : null,
+    cheatsheet:
+      info && !info[7]
+        ? {
+            period: "Q2 FY26 (demo)",
+            resultsDate: null,
+            headline: `Illustrative cheatsheet for ${info[0]}: in the live dashboard this is written from the latest results, earnings call and investor presentation.`,
+            highlights: [
+              "Revenue, margins and cash flow for the quarter with year-on-year growth",
+              "Segment performance and the metrics management highlighted",
+            ],
+            managementCommentary: ["What the CEO and CFO said about demand, pricing and costs"],
+            guidance: ["Any revenue, margin or capex guidance, with the period it covers"],
+            productLaunches: ["Material product launches or expansions in the last quarter"],
+            otherUpdates: ["M&A, buybacks, dividends, management changes, regulation"],
+          }
+        : null,
+    arr: null,
+    nextEarningsDate: null,
     illustrative: true,
   };
 }

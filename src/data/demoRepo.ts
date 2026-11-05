@@ -465,6 +465,10 @@ export function createDemoRepo(): Repo {
         2500,
       );
     },
+    async refreshQuotes() {
+      return { updated: 0, failed: [] };
+    },
+
     async writeMemo(symbol) {
       const h = findHolding(symbol);
       const p = profiles.get(symbol);

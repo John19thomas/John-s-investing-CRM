@@ -27,6 +27,9 @@ export type Holding = {
   dayChangePct: number | null;
   currency: string;
   snapshotAt: string;
+  /** When lastPrice was quoted, and by which source (yahoo, finnhub, kite). */
+  priceAt?: string | null;
+  priceSource?: string | null;
 };
 
 export type Snapshot = {
@@ -97,6 +100,17 @@ export type KiteSyncResult =
 
 export type JobStatus = "idle" | "running" | "done" | "error";
 
+export type Cheatsheet = {
+  period: string | null;
+  resultsDate: string | null;
+  headline: string;
+  highlights: string[];
+  managementCommentary: string[];
+  guidance: string[];
+  productLaunches: string[];
+  otherUpdates: string[];
+};
+
 export type CompanyProfile = {
   symbol: string;
   name: string | null;
@@ -124,6 +138,11 @@ export type CompanyProfile = {
   memoError: string | null;
   memoStartedAt: string | null;
   memoAt: string | null;
+  /** Latest-quarter cheatsheet from results, call and investor presentation. */
+  cheatsheet?: Cheatsheet | null;
+  /** ARR, only where the company discloses it. Millions of the reporting currency. */
+  arr?: { valueM: number; label: string | null; asOf: string | null } | null;
+  nextEarningsDate?: string | null;
   /** Demo mode: figures are illustrative, not real company data. */
   illustrative?: boolean;
 };
@@ -192,6 +211,8 @@ export interface Repo {
   importTrades(rows: TradeImport[]): Promise<{ saved: number }>;
   researchCompany(symbol: string, name: string | null, exchange: string | null): Promise<void>;
   writeMemo(symbol: string): Promise<void>;
+  /** Fetch current market prices for holdings (live mode); returns how many were updated. */
+  refreshQuotes(scope: PortfolioScope): Promise<{ updated: number; failed: string[] }>;
 }
 
 // ---- derived figures ----

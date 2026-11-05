@@ -22,6 +22,8 @@ export type HoldingRow = {
   last_price: number | null;
   name: string | null;
   pnl: number | null;
+  price_at?: string | null;
+  price_source?: string | null;
   quantity: number;
   sector: string | null;
   snapshot_at: string;
@@ -117,6 +119,11 @@ export type ProfileRow = {
   memo_error: string | null;
   memo_started_at: string | null;
   memo_at: string | null;
+  cheatsheet?: Json | null;
+  arr_millions?: number | null;
+  arr_label?: string | null;
+  arr_as_of?: string | null;
+  next_earnings_date?: string | null;
   updated_at: string;
 };
 

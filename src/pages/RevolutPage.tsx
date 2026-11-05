@@ -16,6 +16,7 @@ import { SegmentedBar } from "@/components/charts/SegmentedBar";
 import { ValueChart } from "@/components/charts/ValueChart";
 import { WeightBars } from "@/components/charts/WeightBars";
 import { CoverageNotice } from "@/components/holdings/CoverageNotice";
+import { LiveBadge } from "@/components/holdings/LiveBadge";
 import { PortfolioSection } from "@/components/holdings/PortfolioSection";
 import { bookXirr, statsBySymbol } from "@/components/holdings/positions";
 import { primaryCurrency, summarize } from "@/components/holdings/summary";
@@ -57,10 +58,13 @@ export default function RevolutPage() {
         title="Global equities"
         description={
           s.lastSynced ? (
-            <>
-              Held at Revolut · last imported{" "}
-              {formatDistanceToNow(new Date(s.lastSynced), { addSuffix: true })}
-            </>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+              <span>
+                Held at Revolut · last imported{" "}
+                {formatDistanceToNow(new Date(s.lastSynced), { addSuffix: true })}
+              </span>
+              <LiveBadge scope="revolut" holdings={all} />
+            </div>
           ) : (
             "US and European stocks held at Revolut, refreshed whenever you upload a new statement."
           )
@@ -123,7 +127,7 @@ export default function RevolutPage() {
               value={<Delta value={s.pnl}>{signedMoney(s.pnl, ccy, true)}</Delta>}
               sub={
                 s.value == null ? (
-                  <span className="text-ink-3">Needs current prices in the CSV</span>
+                  <span className="text-ink-3">Waiting for live prices</span>
                 ) : (
                   <Delta value={s.pnlPct}>{pct(s.pnlPct)} all time</Delta>
                 )
@@ -146,7 +150,6 @@ export default function RevolutPage() {
             title="Companies"
             holdings={all}
             stats={stats}
-            showDay={false}
             bookXirr={book.xirr}
             notice={
               <CoverageNotice

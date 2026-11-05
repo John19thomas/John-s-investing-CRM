@@ -19,6 +19,7 @@ import {
   isRunning,
   useFinancials,
   useHoldings,
+  useLiveQuotes,
   useProfiles,
   useResearchCompany,
   useTransactions,
@@ -49,6 +50,7 @@ export default function HoldingPage() {
   const scope = inIndia.length ? "india" : "revolut";
   const lots = inIndia.length ? inIndia : inGlobal;
   const txns = useTransactions(scope);
+  useLiveQuotes(scope);
 
   const holding: Holding | null = useMemo(() => {
     if (!lots.length) return null;
@@ -234,6 +236,10 @@ export default function HoldingPage() {
       {/* About + presentation + valuation */}
       {profile?.researchStatus === "done" ? (
         <>
+          {!profile.isFund && (
+            <KeyMetrics profile={profile} holding={holding} periods={fin.data ?? []} />
+          )}
+          {!profile.isFund && <CheatsheetCard profile={profile} />}
           <div className="grid gap-6 lg:grid-cols-3">
             <Card className="lg:col-span-2">
               <CardHeader title="About" />
@@ -360,6 +366,180 @@ function Presentation({ profile }: { profile: CompanyProfile }) {
   );
 }
 
+/** Live market cap when the share count and price share a currency; otherwise as researched. */
+function marketCap(profile: CompanyProfile, holding: Holding) {
+  const live =
+    profile.sharesOutM != null &&
+    holding.lastPrice != null &&
+    profile.reportingCurrency === holding.currency;
+  return { live, value: live ? profile.sharesOutM! * holding.lastPrice! : profile.marketCapM };
+}
+
+function KeyMetrics({
+  profile,
+  holding,
+  periods,
+}: {
+  profile: CompanyProfile;
+  holding: Holding;
+  periods: FinancialPeriod[];
+}) {
+  const ccy = profile.reportingCurrency;
+  const latest = latestPeriod(periods);
+  const quarter = periods.filter((p) => p.type === "quarter").at(-1) ?? null;
+  const mcap = marketCap(profile, holding);
+  const m = (x: number | null | undefined) => moneyMillions(x ?? null, ccy);
+  const margin = (x: number | null | undefined, rev: number | null | undefined) =>
+    x != null && rev ? `${pct((x / rev) * 100, 1, false)} margin` : null;
+  const on = latest ? latest.label : null;
+  const tiles: { label: string; value: string; sub: string | null }[] = [
+    {
+      label: "Revenue",
+      value: m(latest?.revenue),
+      sub:
+        [
+          on,
+          latest?.revenueYoyPct != null ? `${pct(latest.revenueYoyPct, 1)} YoY` : null,
+          quarter?.revenue != null ? `${quarter.label}: ${m(quarter.revenue)}` : null,
+        ]
+          .filter(Boolean)
+          .join(" · ") || null,
+    },
+    {
+      label: "ARR",
+      value: profile.arr ? m(profile.arr.valueM) : "—",
+      sub: profile.arr
+        ? [profile.arr.label, profile.arr.asOf].filter(Boolean).join(" · ")
+        : "Not disclosed by the company",
+    },
+    {
+      label: "Gross margin",
+      value: latest?.grossMarginPct != null ? pct(latest.grossMarginPct, 1, false) : "—",
+      sub:
+        latest?.grossMarginPct != null
+          ? [
+              on,
+              quarter?.grossMarginPct != null
+                ? `${quarter.label}: ${pct(quarter.grossMarginPct, 1, false)}`
+                : null,
+            ]
+              .filter(Boolean)
+              .join(" · ")
+          : "Not meaningful or not reported",
+    },
+    {
+      label: "EBITDA",
+      value: m(latest?.ebitda),
+      sub: [on, margin(latest?.ebitda, latest?.revenue)].filter(Boolean).join(" · ") || null,
+    },
+    {
+      label: "Free cash flow",
+      value: m(latest?.fcf),
+      sub: [on, "CFO − capex", margin(latest?.fcf, latest?.revenue)].filter(Boolean).join(" · "),
+    },
+    {
+      label: "Market cap",
+      value: m(mcap.value),
+      sub: mcap.live
+        ? "Live price × shares outstanding"
+        : profile.valuationAsOf
+          ? `As of ${profile.valuationAsOf}`
+          : null,
+    },
+  ];
+  return (
+    <section>
+      <SectionTitle>Key numbers</SectionTitle>
+      <Card className="grid grid-cols-2 divide-line sm:grid-cols-3 lg:grid-cols-6 max-lg:[&>*]:border-b lg:divide-x">
+        {tiles.map((t) => (
+          <StatTile
+            key={t.label}
+            label={t.label}
+            value={<span className="tabular">{t.value}</span>}
+            sub={t.sub ? <span className="text-ink-3">{t.sub}</span> : undefined}
+          />
+        ))}
+      </Card>
+    </section>
+  );
+}
+
+function CheatsheetCard({ profile }: { profile: CompanyProfile }) {
+  const c = profile.cheatsheet;
+  const p = profile.presentation;
+  const blocks: [string, string[]][] = c
+    ? [
+        ["Highlights", c.highlights],
+        ["Management commentary", c.managementCommentary],
+        ["Guidance", c.guidance],
+        ["Product launches", c.productLaunches],
+        ["Other updates", c.otherUpdates],
+      ]
+    : [];
+  return (
+    <section>
+      <SectionTitle>Quarterly cheatsheet</SectionTitle>
+      <Card>
+        {!c ? (
+          <p className="px-6 py-8 text-[15px] text-ink-2">
+            No cheatsheet yet. It's written from the latest results, earnings call and investor
+            presentation the next time this company is researched (automatically after each
+            quarterly result, or use Refresh research above).
+          </p>
+        ) : (
+          <>
+            <div className="flex flex-col gap-4 border-b border-line px-6 py-6 sm:flex-row sm:items-start sm:justify-between">
+              <div className="max-w-3xl">
+                <p className="text-[13px] text-ink-3">
+                  {[c.period, c.resultsDate && `results ${c.resultsDate}`]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </p>
+                <p className="mt-2 text-[19px] leading-snug font-medium tracking-tight">
+                  {c.headline}
+                </p>
+              </div>
+              {p.url && (
+                <a
+                  href={p.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex shrink-0 items-center gap-2 rounded-full bg-ink px-4 py-2 text-[13px] font-medium text-paper hover:opacity-85"
+                >
+                  <FileText className="size-4" aria-hidden /> Investor presentation
+                </a>
+              )}
+            </div>
+            <div className="grid gap-x-10 gap-y-7 px-6 py-6 md:grid-cols-2">
+              {blocks
+                .filter(([, xs]) => xs.length > 0)
+                .map(([title, xs]) => (
+                  <div key={title}>
+                    <h3 className="text-[13px] font-medium text-ink-3">{title}</h3>
+                    <ul className="mt-2.5 space-y-2 text-[14px] leading-relaxed text-ink-2">
+                      {xs.map((x, i) => (
+                        <li key={i} className="flex gap-2.5">
+                          <span className="mt-[9px] size-1 shrink-0 rounded-full bg-ink-3" />
+                          <span>{x}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+            </div>
+          </>
+        )}
+        <p className="border-t border-line px-6 py-3 text-[12px] text-ink-3">
+          Refreshes automatically after each quarterly result
+          {profile.nextEarningsDate ? ` · next results ${profile.nextEarningsDate}` : ""}
+          {profile.researchedAt &&
+            ` · updated ${formatDistanceToNow(new Date(profile.researchedAt), { addSuffix: true })}`}
+        </p>
+      </Card>
+    </section>
+  );
+}
+
 function latestPeriod(periods: FinancialPeriod[]) {
   return (
     [...periods].reverse().find((p) => p.type === "ttm") ??
@@ -378,12 +558,7 @@ function Valuation({
   periods: FinancialPeriod[];
 }) {
   const latest = latestPeriod(periods);
-  // Live market cap when the share count and price are in the reporting currency; otherwise as researched.
-  const live =
-    profile.sharesOutM != null &&
-    holding.lastPrice != null &&
-    profile.reportingCurrency === holding.currency;
-  const mcap = live ? profile.sharesOutM! * holding.lastPrice! : profile.marketCapM;
+  const { live, value: mcap } = marketCap(profile, holding);
   const ev = mcap != null ? mcap + (profile.netDebtM ?? 0) : null;
   const r = (a: number | null, b: number | null | undefined) =>
     a != null && b != null && b > 0 ? a / b : null;
