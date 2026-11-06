@@ -55,7 +55,6 @@ const SAVE_TOOL = {
   description: "Save the finished research for this company. Call once, at the end.",
   // Not strict: the schema has more nullable fields than strict mode allows (16); the result is
   // checked by validate() before saving instead.
-  eager_input_streaming: true,
   input_schema: {
     type: "object",
     additionalProperties: false,
@@ -294,7 +293,7 @@ type Research = {
   next_earnings_date?: string | null;
 };
 
-// The streamed tool input is parsed tolerantly, so check its shape before saving.
+// Without strict mode the tool input is not schema-guaranteed, so check its shape before saving.
 function validate(x: unknown): Research {
   const r = x as Research;
   if (!r || typeof r !== "object") throw new Error("Research result was empty");
@@ -334,22 +333,21 @@ async function research(
   ];
 
   for (let i = 0; i < 8; i++) {
-    const msg = await client.beta.messages
-      .stream({
-        model: Deno.env.get("RESEARCH_MODEL") ?? "claude-opus-5-5",
-        max_tokens: 32000,
-        betas: ["server-side-fallback-2026-07-01"],
-        fallbacks: "default",
-        output_config: { effort: "medium" },
-        system: SYSTEM,
-        tools: [
-          { type: "web_search_20260209", name: "web_search", max_uses: 12 },
-          { type: "web_fetch_20260209", name: "web_fetch", max_uses: 6 },
-          SAVE_TOOL,
-        ],
-        messages,
-      })
-      .finalMessage();
+    // Non-streaming: Supabase's CPU-time limit is hit when parsing a long streamed response.
+    const msg = await client.beta.messages.create({
+      model: Deno.env.get("RESEARCH_MODEL") ?? "claude-opus-5-5",
+      max_tokens: 12000,
+      betas: ["server-side-fallback-2026-07-01"],
+      fallbacks: "default",
+      output_config: { effort: "low" },
+      system: SYSTEM,
+      tools: [
+        { type: "web_search_20260209", name: "web_search", max_uses: 8 },
+        { type: "web_fetch_20260209", name: "web_fetch", max_uses: 3 },
+        SAVE_TOOL,
+      ],
+      messages,
+    });
 
     if (msg.stop_reason === "refusal") throw new Error("Claude declined this research request");
     const call = msg.content.find((b) => b.type === "tool_use" && b.name === "save_research");

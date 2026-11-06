@@ -223,22 +223,21 @@ Deno.serve(async (req) => {
       };
 
       const client = new Anthropic();
-      const msg = await client.beta.messages
-        .stream({
-          model: Deno.env.get("MEMO_MODEL") ?? "claude-opus-5-5",
-          max_tokens: 32000,
-          betas: ["server-side-fallback-2026-07-01"],
-          fallbacks: "default",
-          output_config: { effort: "medium" },
-          system: SYSTEM,
-          messages: [
-            {
-              role: "user",
-              content: `Write the memo for ${profile.name ?? symbol}. Today is ${new Date().toISOString().slice(0, 10)}.\n\nDATA:\n${JSON.stringify(data, null, 2)}`,
-            },
-          ],
-        })
-        .finalMessage();
+      // Non-streaming: Supabase's CPU-time limit is hit when parsing a long streamed response.
+      const msg = await client.beta.messages.create({
+        model: Deno.env.get("MEMO_MODEL") ?? "claude-opus-5-5",
+        max_tokens: 8000,
+        betas: ["server-side-fallback-2026-07-01"],
+        fallbacks: "default",
+        output_config: { effort: "low" },
+        system: SYSTEM,
+        messages: [
+          {
+            role: "user",
+            content: `Write the memo for ${profile.name ?? symbol}. Today is ${new Date().toISOString().slice(0, 10)}.\n\nDATA:\n${JSON.stringify(data, null, 2)}`,
+          },
+        ],
+      });
       if (msg.stop_reason === "refusal") throw new Error("Claude declined to write this memo");
       const text = msg.content
         .flatMap((b) => (b.type === "text" ? [b.text] : []))
