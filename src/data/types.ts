@@ -196,6 +196,8 @@ export interface Repo {
   commitRevolut(csv: string): Promise<{ saved: number }>;
   companies(region: Region): Promise<Company[]>;
   saveCompany(input: CompanyInput): Promise<Company>;
+  /** Move a private company between Tracking and Invested. */
+  setCompanyStatus(id: string, status: CompanyStatus): Promise<void>;
   deleteCompany(id: string): Promise<void>;
   notes(companyId: string): Promise<Note[]>;
   addNote(companyId: string, body: string): Promise<Note>;

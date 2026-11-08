@@ -330,6 +330,15 @@ export const liveRepo: Repo = {
     return toCompany(check(res));
   },
 
+  async setCompanyStatus(id, status) {
+    ok(
+      await supabase
+        .from("private_companies")
+        .update({ status, updated_at: new Date().toISOString() })
+        .eq("id", id),
+    );
+  },
+
   async deleteCompany(id) {
     const docs = check(
       await supabase.from("private_documents").select("storage_path").eq("company_id", id),

@@ -360,6 +360,14 @@ export function createDemoRepo(): Repo {
           .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)),
       );
     },
+    async setCompanyStatus(id, status) {
+      await wait(150);
+      const c = companies.find((x) => x.id === id);
+      if (c) {
+        c.status = status;
+        c.updatedAt = new Date().toISOString();
+      }
+    },
     async saveCompany(input) {
       await wait(250);
       const saved: Company = {

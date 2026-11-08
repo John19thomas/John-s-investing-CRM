@@ -1,8 +1,20 @@
 import { formatDistanceToNow } from "date-fns";
 import { Building2, LayoutGrid, Plus, Rows3 } from "lucide-react";
-import { motion } from "motion/react";
+import {
+  DndContext,
+  DragOverlay,
+  KeyboardSensor,
+  MouseSensor,
+  TouchSensor,
+  useDraggable,
+  useDroppable,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
 import { useMemo, useState } from "react";
 import { NavLink, useParams } from "react-router";
+import { toast } from "sonner";
 import {
   Card,
   EmptyState,
@@ -17,9 +29,15 @@ import { CompanyForm } from "@/components/private/CompanyForm";
 import { CompanyPanel } from "@/components/private/CompanyPanel";
 import { CompanyLogo } from "@/components/holdings/CompanyLogo";
 import { STATUS_COLOR, StatusDot } from "@/components/private/StatusDot";
-import { useCompanies } from "@/data/hooks";
+import { useCompanies, useSetCompanyStatus } from "@/data/hooks";
 import { useRepo } from "@/data/RepoContext";
-import { STATUS_LABEL, STATUS_ORDER, type Company, type Region } from "@/data/types";
+import {
+  STATUS_LABEL,
+  STATUS_ORDER,
+  type Company,
+  type CompanyStatus,
+  type Region,
+} from "@/data/types";
 import { moneyCompact } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -151,7 +169,7 @@ export default function PrivatePage() {
           </Card>
 
           {view === "board" ? (
-            <Board companies={list} onOpen={setSelectedId} />
+            <Board companies={list} region={region} onOpen={setSelectedId} />
           ) : (
             <ListView companies={list} onOpen={setSelectedId} />
           )}
@@ -169,69 +187,164 @@ export default function PrivatePage() {
   );
 }
 
-function Board({ companies, onOpen }: { companies: Company[]; onOpen: (id: string) => void }) {
+function Board({
+  companies,
+  region,
+  onOpen,
+}: {
+  companies: Company[];
+  region: Region;
+  onOpen: (id: string) => void;
+}) {
+  const move = useSetCompanyStatus(region);
+  const [active, setActive] = useState<Company | null>(null);
+  // A short movement starts a drag, so a plain click still opens the company. On touch, press
+  // and hold briefly so the board can still be scrolled with a swipe.
+  const sensors = useSensors(
+    useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 180, tolerance: 8 } }),
+    useSensor(KeyboardSensor),
+  );
+
+  const onDragEnd = (e: DragEndEvent) => {
+    setActive(null);
+    const to = e.over?.id as CompanyStatus | undefined;
+    const c = companies.find((x) => x.id === e.active.id);
+    if (!c || !to || c.status === to) return;
+    move.mutate(
+      { id: c.id, status: to },
+      {
+        onSuccess: () => toast.success(`${c.name} moved to ${STATUS_LABEL[to]}`),
+        onError: (err) => toast.error(`Couldn't move ${c.name}`, { description: err.message }),
+      },
+    );
+  };
+
   return (
-    <div className="no-scrollbar -mx-4 flex snap-x gap-4 overflow-x-auto px-4 pb-2 sm:mx-0 sm:px-0 md:grid md:grid-cols-2 md:overflow-visible">
-      {STATUS_ORDER.map((s) => {
-        const col = companies.filter((c) => c.status === s);
-        return (
-          <div key={s} className="w-[82vw] shrink-0 snap-start sm:w-[320px] md:w-auto">
-            <div className="mb-3 flex items-center gap-2 px-1 text-[13px] font-medium">
-              <StatusDot status={s} />
-              {STATUS_LABEL[s]}
-              <span className="tabular text-ink-3">{col.length}</span>
-            </div>
-            <div className="space-y-3">
-              {col.map((c, i) => (
-                <motion.button
-                  key={c.id}
-                  type="button"
-                  onClick={() => onOpen(c.id)}
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.04 }}
-                  className="w-full rounded-2xl border border-line bg-surface p-4 text-left transition-all hover:border-ink/40"
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <span className="flex min-w-0 items-center gap-2.5">
-                      <CompanyLogo
-                        name={c.name}
-                        website={c.website?.replace(/^https?:\/\//, "").replace(/\/.*$/, "")}
-                        size={32}
-                      />
-                      <span className="truncate font-medium tracking-tight">{c.name}</span>
-                    </span>
-                    {c.stage && (
-                      <span className="shrink-0 rounded-sm bg-paper-2 px-1.5 py-0.5 text-[11px] text-ink-2">
-                        {c.stage}
-                      </span>
-                    )}
-                  </div>
-                  {c.sector && <div className="mt-0.5 text-[13px] text-ink-3">{c.sector}</div>}
-                  {c.thesis && (
-                    <p className="mt-2.5 line-clamp-3 text-[13px] leading-relaxed text-ink-2">
-                      {c.thesis}
-                    </p>
-                  )}
-                  <div className="mt-3 flex items-center justify-between text-[12px] text-ink-3">
-                    <span className="tabular">
-                      {c.lastValuation != null
-                        ? `${moneyCompact(c.lastValuation, c.valuationCurrency)} val.`
-                        : ""}
-                    </span>
-                    <span>{formatDistanceToNow(new Date(c.updatedAt), { addSuffix: true })}</span>
-                  </div>
-                </motion.button>
-              ))}
-              {col.length === 0 && (
-                <div className="rounded-2xl border border-dashed border-line px-4 py-8 text-center text-[13px] text-ink-3">
-                  Nothing here yet
-                </div>
-              )}
-            </div>
+    <DndContext
+      sensors={sensors}
+      onDragStart={(e) => setActive(companies.find((c) => c.id === e.active.id) ?? null)}
+      onDragCancel={() => setActive(null)}
+      onDragEnd={onDragEnd}
+    >
+      <p className="mb-4 hidden text-[13px] text-ink-3 md:block">
+        Drag a company between columns to move it
+      </p>
+      <div className="no-scrollbar -mx-4 flex snap-x gap-4 overflow-x-auto px-4 pb-2 sm:mx-0 sm:px-0 md:grid md:grid-cols-2 md:overflow-visible">
+        {STATUS_ORDER.map((s) => (
+          <Column
+            key={s}
+            status={s}
+            companies={companies.filter((c) => c.status === s)}
+            onOpen={onOpen}
+            dragging={!!active}
+          />
+        ))}
+      </div>
+      <DragOverlay dropAnimation={{ duration: 180, easing: "ease-out" }}>
+        {active ? <CompanyCard c={active} lifted /> : null}
+      </DragOverlay>
+    </DndContext>
+  );
+}
+
+function Column({
+  status,
+  companies,
+  onOpen,
+  dragging,
+}: {
+  status: CompanyStatus;
+  companies: Company[];
+  onOpen: (id: string) => void;
+  dragging: boolean;
+}) {
+  const { setNodeRef, isOver } = useDroppable({ id: status });
+  return (
+    <div ref={setNodeRef} className="w-[82vw] shrink-0 snap-start sm:w-[320px] md:w-auto">
+      <div className="label-caps mb-3 flex items-center gap-2 px-1">
+        <StatusDot status={status} />
+        {STATUS_LABEL[status]}
+        <span className="tabular text-ink-3">{companies.length}</span>
+      </div>
+      <div
+        className={cn(
+          "min-h-[140px] space-y-3 rounded-[8px] p-1 transition-colors",
+          dragging && "outline outline-1 outline-line outline-dashed",
+          isOver && "bg-brand/[0.07] outline-brand/60",
+        )}
+      >
+        {companies.map((c) => (
+          <DraggableCard key={c.id} c={c} onOpen={onOpen} />
+        ))}
+        {companies.length === 0 && (
+          <div className="rounded-[6px] border border-dashed border-line px-4 py-8 text-center text-[13px] text-ink-3">
+            {dragging ? "Drop here" : "Nothing here yet"}
           </div>
-        );
-      })}
+        )}
+      </div>
+    </div>
+  );
+}
+
+function DraggableCard({ c, onOpen }: { c: Company; onOpen: (id: string) => void }) {
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: c.id });
+  return (
+    <div
+      ref={setNodeRef}
+      {...attributes}
+      {...listeners}
+      onClick={() => onOpen(c.id)}
+      onKeyDown={(e) => {
+        listeners?.["onKeyDown"]?.(e);
+        if (e.key === "Enter") onOpen(c.id);
+      }}
+      aria-roledescription="draggable company"
+      className={cn(
+        "cursor-grab touch-manipulation select-none active:cursor-grabbing",
+        isDragging && "opacity-30",
+      )}
+    >
+      <CompanyCard c={c} />
+    </div>
+  );
+}
+
+function CompanyCard({ c, lifted }: { c: Company; lifted?: boolean }) {
+  return (
+    <div
+      className={cn(
+        "w-full rounded-[6px] border border-line bg-surface p-4 text-left transition-colors hover:border-ink/40",
+        lifted && "rotate-[1.5deg] border-brand/60 shadow-2xl",
+      )}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <span className="flex min-w-0 items-center gap-2.5">
+          <CompanyLogo
+            name={c.name}
+            website={c.website?.replace(/^https?:\/\//, "").replace(/\/.*$/, "")}
+            size={32}
+          />
+          <span className="truncate font-medium tracking-tight">{c.name}</span>
+        </span>
+        {c.stage && (
+          <span className="shrink-0 rounded-sm bg-paper-2 px-1.5 py-0.5 text-[11px] text-ink-2">
+            {c.stage}
+          </span>
+        )}
+      </div>
+      {c.sector && <div className="mt-0.5 text-[13px] text-ink-3">{c.sector}</div>}
+      {c.thesis && (
+        <p className="mt-2.5 line-clamp-3 text-[13px] leading-relaxed text-ink-2">{c.thesis}</p>
+      )}
+      <div className="mt-3 flex items-center justify-between text-[12px] text-ink-3">
+        <span className="tabular">
+          {c.lastValuation != null
+            ? `${moneyCompact(c.lastValuation, c.valuationCurrency)} val.`
+            : ""}
+        </span>
+        <span>{formatDistanceToNow(new Date(c.updatedAt), { addSuffix: true })}</span>
+      </div>
     </div>
   );
 }

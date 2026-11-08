@@ -2,7 +2,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRepo } from "./RepoContext";
 import {
   canSummarize,
+  type Company,
   type CompanyInput,
+  type CompanyStatus,
   type DocType,
   type PortfolioScope,
   type Region,
@@ -49,6 +51,29 @@ export function useDocuments(companyId: string | null) {
     queryKey: [repo.mode, "documents", companyId],
     queryFn: () => repo.documents(companyId!),
     enabled: !!companyId,
+  });
+}
+
+/** Move a company between board columns, updating the board immediately. */
+export function useSetCompanyStatus(region: Region) {
+  const { repo } = useRepo();
+  const qc = useQueryClient();
+  const key = [repo.mode, "companies", region];
+  return useMutation({
+    mutationFn: ({ id, status }: { id: string; status: CompanyStatus }) =>
+      repo.setCompanyStatus(id, status),
+    onMutate: async ({ id, status }) => {
+      await qc.cancelQueries({ queryKey: key });
+      const prev = qc.getQueryData<Company[]>(key);
+      qc.setQueryData<Company[]>(key, (cs) =>
+        (cs ?? []).map((c) => (c.id === id ? { ...c, status } : c)),
+      );
+      return { prev };
+    },
+    onError: (_e, _v, ctx) => {
+      if (ctx?.prev) qc.setQueryData(key, ctx.prev);
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: [repo.mode, "companies"] }),
   });
 }
 
