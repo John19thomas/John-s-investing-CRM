@@ -113,7 +113,7 @@ const COMPANIES: Company[] = [
     status: "invested",
     region: "global",
     thesis:
-      "Vision-guided picking arms that retrofit onto existing warehouse conveyors. Payback under 9 months for mid-size 3PLs, a segment the incumbents ignore.",
+      "Vision-guided picking arms that retrofit onto existing warehouse conveyors, sold to the mid-size 3PLs the incumbents ignore.\n\nWhy it matters: Mid-size warehouses cannot justify a full automation rebuild. A retrofit with payback under 9 months turns automation into an operating decision rather than a capital project.\n\nWhy now: Vision models are now good enough to pick mixed items without custom programming for each SKU.\n\nWhat has to go right: Hardware gross margin has to rise above 45% and the sales cycle has to shorten as reference customers accumulate.",
     keyRisks:
       "• Hardware gross margins below 45%\n• Long enterprise sales cycles\n• Dependency on a single gripper supplier",
     keyMetrics: {

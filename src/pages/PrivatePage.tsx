@@ -29,6 +29,7 @@ import { CompanyForm } from "@/components/private/CompanyForm";
 import { CompanyPanel } from "@/components/private/CompanyPanel";
 import { CompanyLogo } from "@/components/holdings/CompanyLogo";
 import { STATUS_COLOR, StatusDot } from "@/components/private/StatusDot";
+import { thesisLead } from "@/components/private/Thesis";
 import { useCompanies, useSetCompanyStatus } from "@/data/hooks";
 import { useRepo } from "@/data/RepoContext";
 import {
@@ -203,7 +204,10 @@ function Board({
   const sensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 180, tolerance: 8 } }),
-    useSensor(KeyboardSensor),
+    // Space starts a keyboard drag; Enter is left free to open the company.
+    useSensor(KeyboardSensor, {
+      keyboardCodes: { start: ["Space"], cancel: ["Escape"], end: ["Space"] },
+    }),
   );
 
   const onDragEnd = (e: DragEndEvent) => {
@@ -314,7 +318,7 @@ function CompanyCard({ c, lifted }: { c: Company; lifted?: boolean }) {
   return (
     <div
       className={cn(
-        "w-full rounded-[6px] border border-line bg-surface p-4 text-left transition-colors hover:border-ink/40",
+        "w-full rounded-[6px] border border-line bg-surface p-5 text-left transition-[border-color,transform,box-shadow] duration-300 hover:-translate-y-0.5 hover:border-brand/50",
         lifted && "rotate-[1.5deg] border-brand/60 shadow-2xl",
       )}
     >
@@ -335,7 +339,9 @@ function CompanyCard({ c, lifted }: { c: Company; lifted?: boolean }) {
       </div>
       {c.sector && <div className="mt-0.5 text-[13px] text-ink-3">{c.sector}</div>}
       {c.thesis && (
-        <p className="mt-2.5 line-clamp-3 text-[13px] leading-relaxed text-ink-2">{c.thesis}</p>
+        <p className="font-serif mt-3 line-clamp-3 text-[16px] leading-snug text-ink-2">
+          {thesisLead(c.thesis)}
+        </p>
       )}
       <div className="mt-3 flex items-center justify-between text-[12px] text-ink-3">
         <span className="tabular">

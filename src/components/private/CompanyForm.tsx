@@ -188,11 +188,16 @@ export function CompanyForm({
             />
           </label>
           <label className="grid gap-1.5 sm:col-span-2">
-            <span className="text-[13px] text-ink-2">Thesis</span>
+            <span className="text-[13px] text-ink-2">
+              Thesis · first line is the headline; start a paragraph with a label and a colon to
+              give it a heading
+            </span>
             <textarea
-              className={`${field} min-h-24`}
+              className={`${field} min-h-40`}
               value={form.thesis ?? ""}
-              placeholder="Why this could be big. Leave blank and upload an IC memo to have Claude draft it."
+              placeholder={
+                "One sentence stating the thesis.\n\nWhy it matters: …\n\nWhy now: …\n\nWhat has to go right: …"
+              }
               onChange={(e) => set("thesis", text(e.target.value))}
             />
           </label>

@@ -70,7 +70,7 @@ export default function AppShell() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-[1320px] px-5 pt-8 sm:px-10 sm:pt-16">
+      <main className="flow mx-auto max-w-[1320px] px-5 pt-8 sm:px-10 sm:pt-16">
         <Outlet />
       </main>
 

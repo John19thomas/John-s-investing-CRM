@@ -51,6 +51,7 @@ export function PortfolioSection({
   const researchMissing = async () => {
     setStarting(true);
     const batch = missing.slice(0, BATCH);
+    let started = 0;
     for (const h of batch) {
       try {
         await research.mutateAsync({ symbol: h.symbol, name: h.name, exchange: h.exchange });
@@ -60,10 +61,12 @@ export function PortfolioSection({
         });
         break;
       }
+      started++;
       await new Promise((r) => setTimeout(r, 1500));
     }
     setStarting(false);
-    toast.message(`Researching ${batch.length} companies`, {
+    if (!started) return;
+    toast.message(`Researching ${started} ${started === 1 ? "company" : "companies"}`, {
       description: "Logos and descriptions appear as each one finishes (1–3 minutes).",
     });
   };
@@ -121,7 +124,7 @@ export function PortfolioSection({
       {view === "companies" ? (
         <CompanyGrid holdings={holdings} profiles={byS} stats={stats} />
       ) : (
-        <div className="overflow-hidden rounded-[6px] border border-line bg-surface/60">
+        <div className="overflow-hidden rounded-[6px] border border-line bg-surface">
           <HoldingsTable
             holdings={holdings}
             showDay={showDay ?? true}

@@ -38,7 +38,11 @@ const SCHEMA = {
       items: { type: "string" },
       description: "5-8 bullet takeaways.",
     },
-    thesis: { type: "string", description: "The investment thesis as argued in the document." },
+    thesis: {
+      type: "string",
+      description:
+        "The investment thesis as argued in the document, as plain text paragraphs separated by a blank line. First paragraph: one sentence stating the thesis. Then up to three paragraphs that each start with a label and a colon: 'Why it matters: …', 'Why now: …', 'What has to go right: …'. Two to three sentences each, with the document's own numbers. Omit a paragraph the document does not support.",
+    },
     key_risks: { type: "array", items: { type: "string" } },
     key_metrics: {
       type: "array",
@@ -139,9 +143,10 @@ Deno.serve(async (req) => {
   const client = new Anthropic();
   let extract: Extract;
   try {
-    const stream = client.beta.messages.stream({
+    // Non-streaming: Supabase's CPU-time limit is hit when parsing a long streamed response.
+    const msg = await client.beta.messages.create({
       model: Deno.env.get("MEMO_MODEL") ?? "claude-opus-5-5",
-      max_tokens: 16000,
+      max_tokens: 8000,
       betas: ["server-side-fallback-2026-07-01"],
       fallbacks: "default",
       output_config: { effort: "medium", format: { type: "json_schema", schema: SCHEMA } },
@@ -163,7 +168,6 @@ Deno.serve(async (req) => {
         },
       ],
     });
-    const msg = await stream.finalMessage();
     if (msg.stop_reason === "refusal")
       return json({ error: "Claude declined to read this document" }, 422);
     if (msg.stop_reason === "max_tokens")

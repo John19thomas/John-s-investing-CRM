@@ -10,7 +10,7 @@ import {
   useDeleteNote,
   useDocuments,
   useNotes,
-  useSaveCompany,
+  useSetCompanyStatus,
   useSummarizeDocument,
   useUploadDocument,
 } from "@/data/hooks";
@@ -29,6 +29,7 @@ import { cn } from "@/lib/utils";
 import { CompanyForm } from "./CompanyForm";
 import { CompanyLogo } from "@/components/holdings/CompanyLogo";
 import { StatusDot } from "./StatusDot";
+import { RiskList, Thesis } from "./Thesis";
 
 export function CompanyPanel({
   company,
@@ -42,7 +43,7 @@ export function CompanyPanel({
     <Sheet open={!!company} onOpenChange={(v) => !v && onClose()}>
       <SheetContent
         side="right"
-        className="w-full gap-0 overflow-y-auto border-line bg-surface p-0 sm:max-w-[640px]"
+        className="w-full gap-0 overflow-y-auto border-line bg-surface p-0 sm:max-w-[720px]"
       >
         {company && (
           <>
@@ -69,7 +70,7 @@ function PanelBody({
   onEdit: () => void;
   onDeleted: () => void;
 }) {
-  const save = useSaveCompany();
+  const move = useSetCompanyStatus(company.region);
   const del = useDeleteCompany();
   const ccy = company.valuationCurrency;
   const metrics = Object.entries(company.keyMetrics);
@@ -91,8 +92,8 @@ function PanelBody({
 
   return (
     <div className="pb-12">
-      <div className="border-b border-line px-6 pt-8 pb-6">
-        <p className="text-[13px] text-ink-3">
+      <div className="border-b border-line px-6 pt-10 pb-7 sm:px-10">
+        <p className="label-caps text-brand">
           {company.region === "india" ? "India" : "Global"} · Private
         </p>
         <div className="mt-3 flex items-center gap-4">
@@ -101,7 +102,9 @@ function PanelBody({
             website={company.website?.replace(/^https?:\/\//, "").replace(/\/.*$/, "")}
             size={52}
           />
-          <SheetTitle className="font-display text-[32px] leading-tight">{company.name}</SheetTitle>
+          <SheetTitle className="font-display text-[34px] sm:text-[44px]">
+            {company.name}
+          </SheetTitle>
         </div>
         <SheetDescription asChild>
           <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-ink-2">
@@ -128,7 +131,16 @@ function PanelBody({
               <button
                 key={s}
                 type="button"
-                onClick={() => company.status !== s && save.mutate({ ...company, status: s })}
+                onClick={() =>
+                  company.status !== s &&
+                  move.mutate(
+                    { id: company.id, status: s },
+                    {
+                      onError: (e) =>
+                        toast.error("Couldn't change the stage", { description: e.message }),
+                    },
+                  )
+                }
                 className={cn(
                   "flex items-center gap-1.5 rounded-sm px-3 py-1 text-[13px] font-medium transition-colors",
                   company.status === s ? "bg-ink text-paper" : "text-ink-2 hover:text-ink",
@@ -145,33 +157,43 @@ function PanelBody({
         </div>
       </div>
 
-      <dl className="grid grid-cols-2 gap-px border-b border-line bg-line sm:grid-cols-3">
+      <dl className="grid grid-cols-2 gap-x-6 gap-y-5 border-b border-line px-6 py-6 sm:grid-cols-3 sm:px-10">
         {facts.map(([k, v]) => (
-          <div key={k} className="bg-surface px-6 py-4">
-            <dt className="text-[12px] text-ink-3">{k}</dt>
-            <dd className="mt-1 truncate text-[15px] font-medium">
+          <div key={k} className="min-w-0">
+            <dt className="label-caps text-[10px] text-ink-3">{k}</dt>
+            <dd className="mt-1.5 truncate text-[15px]">
               {v ?? <span className="text-ink-3">—</span>}
             </dd>
           </div>
         ))}
       </dl>
 
-      <Section title="Thesis">
-        <Prose
-          text={company.thesis}
-          empty="No thesis yet. Write one, or upload an IC memo and Claude will draft it."
-        />
+      <Section title="Investment thesis">
+        {company.thesis ? (
+          <Thesis text={company.thesis} />
+        ) : (
+          <p className="text-[15px] text-ink-3">
+            No thesis yet. Write one, or upload an IC memo and Claude will draft it.
+          </p>
+        )}
       </Section>
       <Section title="Key risks">
-        <Prose text={company.keyRisks} empty="No risks noted yet." />
+        {company.keyRisks ? (
+          <RiskList text={company.keyRisks} />
+        ) : (
+          <p className="text-[15px] text-ink-3">No risks noted yet.</p>
+        )}
       </Section>
       {metrics.length > 0 && (
         <Section title="Key metrics">
-          <dl className="grid gap-2 sm:grid-cols-2">
+          <dl className="grid gap-x-10 sm:grid-cols-2">
             {metrics.map(([k, v]) => (
-              <div key={k} className="rounded-sm border border-line px-4 py-3">
-                <dt className="text-[12px] text-ink-3">{k}</dt>
-                <dd className="mt-0.5 text-[15px] font-medium">{v}</dd>
+              <div
+                key={k}
+                className="flex items-baseline justify-between gap-4 border-b border-line/70 py-3"
+              >
+                <dt className="text-[13px] text-ink-3">{k}</dt>
+                <dd className="tabular text-right text-[15px]">{v}</dd>
               </div>
             ))}
           </dl>
@@ -181,7 +203,7 @@ function PanelBody({
       <Documents company={company} />
       <Notes company={company} />
 
-      <div className="px-6 pt-8">
+      <div className="px-6 pt-8 sm:px-10">
         <button
           type="button"
           className="inline-flex items-center gap-1.5 text-sm text-loss hover:underline"
@@ -218,19 +240,14 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className="border-b border-line px-6 py-6">
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <h3 className="text-[13px] font-medium tracking-[0.08em] text-ink-2 uppercase">{title}</h3>
+    <section className="border-b border-line px-6 py-8 sm:px-10">
+      <div className="mb-5 flex items-center justify-between gap-3">
+        <h3 className="label-caps text-ink-3">{title}</h3>
         {right}
       </div>
       {children}
     </section>
   );
-}
-
-function Prose({ text, empty }: { text: string | null; empty: string }) {
-  if (!text) return <p className="text-[15px] text-ink-3">{empty}</p>;
-  return <p className="text-[15px] leading-relaxed whitespace-pre-line text-ink-2">{text}</p>;
 }
 
 function Notes({ company }: { company: Company }) {
@@ -248,8 +265,8 @@ function Notes({ company }: { company: Company }) {
   };
 
   return (
-    <Section title="Notes & context">
-      <div className="rounded-2xl border border-line bg-paper focus-within:border-ink">
+    <Section title="Notes and context">
+      <div className="rounded-[6px] border border-line bg-paper transition-colors focus-within:border-brand/60">
         <textarea
           value={body}
           onChange={(e) => setBody(e.target.value)}
@@ -349,7 +366,7 @@ function Documents({ company }: { company: Company }) {
   const shown = filter === "all" ? all : all.filter((d) => (d.docType ?? "other") === filter);
 
   return (
-    <Section title="Analysis, notes & memos">
+    <Section title="Analysis · notes · memos">
       {/* Upload */}
       <div
         onDragOver={(e) => {

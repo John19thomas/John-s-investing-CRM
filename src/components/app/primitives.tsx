@@ -31,7 +31,7 @@ export function PageHeader({
 
 export function Card({ className, children }: { className?: string; children: ReactNode }) {
   return (
-    <section className={cn("rounded-[6px] border border-line bg-surface/60", className)}>
+    <section className={cn("min-w-0 rounded-[6px] border border-line bg-surface", className)}>
       {children}
     </section>
   );
@@ -109,10 +109,10 @@ export function StatTile({
       <span className="label-caps text-[11px] text-ink-3">{label}</span>
       <span
         className={cn(
-          "mt-2 truncate font-extrabold tracking-[-0.04em]",
+          "mt-2 font-extrabold tracking-[-0.04em] break-words",
           hero
-            ? "text-[44px] leading-none sm:text-[56px]"
-            : "text-[28px] leading-tight sm:text-[32px]",
+            ? "text-[40px] leading-none sm:text-[56px]"
+            : "text-[22px] leading-tight sm:text-[32px]",
         )}
       >
         {value}
