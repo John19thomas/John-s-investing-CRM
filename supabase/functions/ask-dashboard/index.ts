@@ -4,6 +4,7 @@
 // Secrets: ANTHROPIC_API_KEY (required), CHAT_MODEL (optional, default claude-sonnet-5-5).
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import Anthropic from "npm:@anthropic-ai/sdk@1.3.0";
 import { portfolioXirr, positionStats, type Trade } from "../_shared/performance.ts";
 
 const cors = {
@@ -191,6 +192,26 @@ Deno.serve(async (req) => {
     ]),
   );
 
+  // Benchmarks: trailing 1-year price return from Yahoo Finance (index levels, no dividends).
+  const yearReturn = async (ticker: string) => {
+    try {
+      const r = await fetch(
+        `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?interval=1d&range=1y`,
+        { headers: { "User-Agent": "Mozilla/5.0 (compatible; investing-dashboard/1.0)" } },
+      );
+      if (!r.ok) return null;
+      const j = await r.json();
+      const closes: number[] = (j?.chart?.result?.[0]?.indicators?.quote?.[0]?.close ?? []).filter(
+        (c: unknown): c is number => typeof c === "number" && c > 0,
+      );
+      if (closes.length < 2) return null;
+      return Math.round((closes.at(-1)! / closes[0]! - 1) * 1000) / 10;
+    } catch {
+      return null;
+    }
+  };
+  const [nifty, sp500] = await Promise.all([yearReturn("^NSEI"), yearReturn("^GSPC")]);
+
   const context = {
     today: new Date().toISOString().slice(0, 10),
     public_holdings: holdings.data ?? [],
@@ -202,6 +223,11 @@ Deno.serve(async (req) => {
     private_documents: docs.data ?? [],
     private_company_notes: notes.data ?? [],
     company_research: profiles.data ?? [],
+    benchmarks_trailing_1y_price_return_pct: {
+      nifty_50: nifty,
+      sp_500: sp500,
+      note: "Index price change over the last 12 months, excluding dividends. Compare with care: portfolio XIRR is money-weighted and covers each holding's own holding period, not exactly the last 12 months.",
+    },
     xirr: {
       note: "Annualised return from actual cash flows. India is in INR, global in USD; they are not combined. Blended figures cover only holdings with complete purchase history.",
       blended_by_book: xirrByBook,
@@ -211,34 +237,51 @@ Deno.serve(async (req) => {
       "financials money values are in millions of the stated currency; INR 1 crore = 10 million. private_companies status 'watching' means Tracking.",
   };
 
-  const messages = [
-    ...(history.data ?? []).map((m: any) => ({ role: m.role, content: m.content })),
-    { role: "user", content: message },
-  ];
+  // Skip empty turns and unanswered questions, so user and assistant turns alternate.
+  const past: { role: "user" | "assistant"; content: string }[] = [];
+  for (const m of history.data ?? []) {
+    if (typeof m.content !== "string" || !m.content.trim()) continue;
+    if (m.role === "user" && past.at(-1)?.role === "user") past.pop();
+    if (m.role === "assistant" && past.at(-1)?.role !== "user") continue;
+    past.push({ role: m.role, content: m.content });
+  }
+  if (past.at(-1)?.role === "user") past.pop();
+  const messages = [...past, { role: "user" as const, content: message }];
 
-  const r = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "x-api-key": key,
-      "anthropic-version": "2023-06-01",
-      "content-type": "application/json",
-    },
-    body: JSON.stringify({
+  const client = new Anthropic({ apiKey: key });
+  let reply = "";
+  try {
+    // Non-streaming to stay inside the edge runtime's CPU limit. A generous max_tokens leaves room
+    // for the model's thinking as well as the answer.
+    const msg = await client.beta.messages.create({
       model: Deno.env.get("CHAT_MODEL") ?? "claude-sonnet-5-5",
-      max_tokens: 1500,
+      max_tokens: 8000,
+      betas: ["server-side-fallback-2026-07-01"],
+      fallbacks: "default",
+      output_config: { effort: "low" },
       system: [
         { type: "text", text: SYSTEM },
         { type: "text", text: "PORTFOLIO DATA (JSON):\n" + JSON.stringify(context) },
       ],
       messages,
-    }),
-  });
-  const out = await r.json();
-  if (!r.ok) return json({ error: "Claude API error", detail: out?.error?.message }, 502);
-  const reply = (out.content ?? [])
-    .filter((c: any) => c.type === "text")
-    .map((c: any) => c.text)
-    .join("\n");
+    });
+    reply = msg.content
+      .flatMap((b) => (b.type === "text" ? [b.text] : []))
+      .join("\n")
+      .trim();
+    if (!reply)
+      return json(
+        {
+          error: "The assistant returned an empty answer",
+          detail: `stop_reason: ${msg.stop_reason}`,
+        },
+        502,
+      );
+  } catch (e) {
+    if (e instanceof Anthropic.APIError)
+      return json({ error: "Claude API error", detail: e.message }, 502);
+    return json({ error: "The assistant failed", detail: (e as Error).message }, 500);
+  }
 
   await db.from("chat_messages").insert([
     { user_id: user.id, conversation_id, role: "user", content: message },
