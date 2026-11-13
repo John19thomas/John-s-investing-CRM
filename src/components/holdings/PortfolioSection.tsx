@@ -19,6 +19,8 @@ export function PortfolioSection({
   controls,
   bookXirr,
   notice,
+  estimated,
+  onDates,
 }: {
   title: string;
   holdings: Holding[];
@@ -27,6 +29,8 @@ export function PortfolioSection({
   controls?: ReactNode;
   bookXirr?: number | null;
   notice?: ReactNode;
+  estimated?: Set<string>;
+  onDates?: () => void;
 }) {
   const [view, setView] = useState<"companies" | "table">("table");
   const profiles = useProfiles();
@@ -131,6 +135,8 @@ export function PortfolioSection({
             profiles={byS}
             stats={stats}
             bookXirr={bookXirr ?? null}
+            {...(estimated ? { estimated } : {})}
+            onDates={onDates}
           />
         </div>
       )}

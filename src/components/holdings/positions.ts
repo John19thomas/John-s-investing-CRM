@@ -29,17 +29,55 @@ export function statsBySymbol(holdings: Holding[], txns: Txn[]): Map<string, Pos
   return out;
 }
 
-/** Portfolio XIRR, only when every current holding is explained by the trade history. */
+/**
+ * Blended XIRR across the holdings whose purchases are fully known (from broker trades or a
+ * hand-entered opening lot). `coveredValuePct` says how much of the book that is.
+ */
 export function bookXirr(holdings: Holding[], txns: Txn[], stats: Map<string, PositionStats>) {
-  const covered = holdings.filter((h) => stats.get(h.symbol)?.complete).length;
-  if (!holdings.length || covered < holdings.length)
-    return { xirr: null, covered, total: holdings.length };
-  const value = holdings.reduce((a, h) => a + (marketValue(h) ?? 0), 0);
+  const inBook = holdings.filter((h) => stats.get(h.symbol)?.complete);
+  const symbols = new Set(inBook.map((h) => h.symbol));
+  const value = inBook.reduce((a, h) => a + (marketValue(h) ?? 0), 0);
+  const total = holdings.reduce((a, h) => a + (marketValue(h) ?? 0), 0);
+  const estimated = new Set(txns.filter((t) => t.estimated).map((t) => t.symbol));
   return {
-    xirr: portfolioXirr([{ trades: txns.map(asTrade), value }], today()),
-    covered,
+    xirr: inBook.length
+      ? portfolioXirr(
+          [{ trades: txns.filter((t) => symbols.has(t.symbol)).map(asTrade), value }],
+          today(),
+        )
+      : null,
+    covered: inBook.length,
     total: holdings.length,
+    coveredValuePct: total ? (value / total) * 100 : 0,
+    /** How many of the covered holdings rely on a hand-entered purchase date. */
+    estimated: inBook.filter((h) => estimated.has(h.symbol)).length,
   };
+}
+
+/** One-line description of what the blended XIRR covers. */
+export function bookXirrNote(b: ReturnType<typeof bookXirr>) {
+  if (b.xirr == null) return "Add purchase dates to see this";
+  const parts = [
+    b.covered === b.total
+      ? "Annualised · all holdings"
+      : `${b.covered} of ${b.total} holdings · ${Math.round(b.coveredValuePct)}% of value`,
+  ];
+  if (b.estimated) parts.push(`${b.estimated} estimated`);
+  return parts.join(" · ");
+}
+
+/**
+ * The lot that is missing from the broker trade history: the units not explained by trades,
+ * priced so that total cost matches the broker's average price. Null when nothing is missing
+ * or the history doesn't reconcile (more units traded than held).
+ */
+export function missingLot(h: Holding, real: PositionStats | undefined) {
+  const traded = real?.tradedQuantity ?? 0;
+  const quantity = h.quantity - traded;
+  if (quantity <= h.quantity * 0.005) return null;
+  const cost = h.quantity * h.avgPrice - traded * (real?.fifoEntryPrice ?? 0);
+  const price = cost > 0 ? cost / quantity : h.avgPrice;
+  return { quantity, price };
 }
 
 /** XIRR for display, or a short reason why it can't be calculated yet. */

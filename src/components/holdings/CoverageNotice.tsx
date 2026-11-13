@@ -12,6 +12,7 @@ export function CoverageNotice({
   hint,
   onImport,
   importLabel,
+  onDates,
 }: {
   holdings: Holding[];
   txns: Txn[];
@@ -19,6 +20,7 @@ export function CoverageNotice({
   hint: string;
   onImport?: () => void;
   importLabel?: string;
+  onDates?: () => void;
 }) {
   if (!holdings.length) return null;
   const infos = holdings.map((h) => xirrInfo(stats.get(h.symbol), h.quantity));
@@ -49,17 +51,32 @@ export function CoverageNotice({
           ]
             .filter(Boolean)
             .join(", ")}
-          {none || partial ? `. ${hint}` : "."}
+          {none || partial
+            ? `. Enter a purchase date for those to get an estimate, or: ${hint}`
+            : "."}
         </p>
       </div>
-      {onImport && (none > 0 || partial > 0) && (
-        <button
-          type="button"
-          onClick={onImport}
-          className="shrink-0 rounded-sm bg-ink px-3.5 py-2 text-[13px] font-medium text-paper hover:opacity-85"
-        >
-          {importLabel ?? "Import trades"}
-        </button>
+      {(none > 0 || partial > 0) && (
+        <div className="flex shrink-0 flex-wrap gap-2">
+          {onDates && (
+            <button
+              type="button"
+              onClick={onDates}
+              className="rounded-sm bg-ink px-3.5 py-2 text-[13px] font-medium text-paper hover:opacity-85"
+            >
+              Enter purchase dates
+            </button>
+          )}
+          {onImport && (
+            <button
+              type="button"
+              onClick={onImport}
+              className="rounded-sm border border-white/25 px-3.5 py-2 text-[13px] font-medium hover:border-white/60"
+            >
+              {importLabel ?? "Import trades"}
+            </button>
+          )}
+        </div>
       )}
     </div>
   );

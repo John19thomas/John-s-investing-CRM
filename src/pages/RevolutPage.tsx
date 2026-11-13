@@ -18,7 +18,8 @@ import { WeightBars } from "@/components/charts/WeightBars";
 import { CoverageNotice } from "@/components/holdings/CoverageNotice";
 import { LiveBadge } from "@/components/holdings/LiveBadge";
 import { PortfolioSection } from "@/components/holdings/PortfolioSection";
-import { bookXirr, statsBySymbol } from "@/components/holdings/positions";
+import { bookXirr, bookXirrNote, statsBySymbol } from "@/components/holdings/positions";
+import { PurchaseDatesDialog } from "@/components/holdings/PurchaseDatesDialog";
 import { primaryCurrency, summarize } from "@/components/holdings/summary";
 import { ImportDialog } from "@/components/revolut/ImportDialog";
 import { useHoldings, useSnapshots, useTransactions } from "@/data/hooks";
@@ -37,6 +38,11 @@ export default function RevolutPage() {
   const all = useMemo(() => holdings.data ?? [], [holdings.data]);
   const stats = useMemo(() => statsBySymbol(all, txns.data ?? []), [all, txns.data]);
   const book = bookXirr(all, txns.data ?? [], stats);
+  const [datesOpen, setDatesOpen] = useState(false);
+  const estimated = useMemo(
+    () => new Set((txns.data ?? []).filter((t) => t.estimated).map((t) => t.symbol)),
+    [txns.data],
+  );
   const ccy = primaryCurrency(all, "USD");
   const s = summarize(all, ccy);
   const otherCcys = [...new Set(all.map((h) => h.currency))].filter((c) => c !== ccy);
@@ -104,7 +110,7 @@ export default function RevolutPage() {
               }
             />
             <StatTile
-              label="XIRR"
+              label="Blended XIRR"
               value={
                 book.xirr != null ? (
                   <Delta value={book.xirr}>{pct(book.xirr * 100, 1)}</Delta>
@@ -114,11 +120,19 @@ export default function RevolutPage() {
               }
               sub={
                 <span className="text-ink-3">
-                  {book.xirr != null
-                    ? `Annualised · ${moneyCompact(s.invested, ccy)} invested`
-                    : book.covered
-                      ? `Trades cover ${book.covered} of ${book.total}`
-                      : "Import a full statement to see this"}
+                  {bookXirrNote(book)}
+                  {book.covered < book.total && (
+                    <>
+                      {" · "}
+                      <button
+                        type="button"
+                        onClick={() => setDatesOpen(true)}
+                        className="underline underline-offset-2 hover:text-ink"
+                      >
+                        Add purchase dates
+                      </button>
+                    </>
+                  )}
                 </span>
               }
             />
@@ -151,11 +165,14 @@ export default function RevolutPage() {
             holdings={all}
             stats={stats}
             bookXirr={book.xirr}
+            estimated={estimated}
+            onDates={() => setDatesOpen(true)}
             notice={
               <CoverageNotice
                 holdings={all}
                 txns={txns.data ?? []}
                 stats={stats}
+                onDates={() => setDatesOpen(true)}
                 hint="Re-import a Revolut statement that starts from your first trade."
                 onImport={() => setOpen(true)}
                 importLabel="Import statement"
@@ -189,6 +206,12 @@ export default function RevolutPage() {
       )}
 
       <ImportDialog open={open} onOpenChange={setOpen} />
+      <PurchaseDatesDialog
+        open={datesOpen}
+        onOpenChange={setDatesOpen}
+        holdings={all}
+        txns={txns.data ?? []}
+      />
     </div>
   );
 }

@@ -19,7 +19,8 @@ import { WeightBars } from "@/components/charts/WeightBars";
 import { CoverageNotice } from "@/components/holdings/CoverageNotice";
 import { LiveBadge } from "@/components/holdings/LiveBadge";
 import { PortfolioSection } from "@/components/holdings/PortfolioSection";
-import { bookXirr, statsBySymbol } from "@/components/holdings/positions";
+import { bookXirr, bookXirrNote, statsBySymbol } from "@/components/holdings/positions";
+import { PurchaseDatesDialog } from "@/components/holdings/PurchaseDatesDialog";
 import { summarize } from "@/components/holdings/summary";
 import { TradebookDialog } from "@/components/holdings/TradebookDialog";
 import { useHoldings, useKiteSync, useSnapshots, useTransactions } from "@/data/hooks";
@@ -39,6 +40,11 @@ export default function IndiaPage() {
   const s = summarize(all, "INR");
   const stats = useMemo(() => statsBySymbol(all, txns.data ?? []), [all, txns.data]);
   const book = bookXirr(all, txns.data ?? [], stats);
+  const [datesOpen, setDatesOpen] = useState(false);
+  const estimated = useMemo(
+    () => new Set((txns.data ?? []).filter((t) => t.estimated).map((t) => t.symbol)),
+    [txns.data],
+  );
 
   const runSync = () =>
     sync.mutate(undefined, {
@@ -121,7 +127,7 @@ export default function IndiaPage() {
               }
             />
             <StatTile
-              label="XIRR"
+              label="Blended XIRR"
               value={
                 book.xirr != null ? (
                   <Delta value={book.xirr}>{pct(book.xirr * 100, 1)}</Delta>
@@ -130,18 +136,21 @@ export default function IndiaPage() {
                 )
               }
               sub={
-                book.xirr != null ? (
-                  <span className="text-ink-3">Annualised, all trades</span>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => setTradebookOpen(true)}
-                    className="text-left text-ink-3 underline underline-offset-2 hover:text-ink"
-                  >
-                    {book.covered ? `Trades cover ${book.covered} of ${book.total}. ` : ""}Import
-                    tradebook
-                  </button>
-                )
+                <span className="text-ink-3">
+                  {bookXirrNote(book)}
+                  {book.covered < book.total && (
+                    <>
+                      {" · "}
+                      <button
+                        type="button"
+                        onClick={() => setDatesOpen(true)}
+                        className="underline underline-offset-2 hover:text-ink"
+                      >
+                        Add purchase dates
+                      </button>
+                    </>
+                  )}
+                </span>
               }
             />
             <StatTile
@@ -162,11 +171,14 @@ export default function IndiaPage() {
             holdings={visible}
             stats={stats}
             bookXirr={book.xirr}
+            estimated={estimated}
+            onDates={() => setDatesOpen(true)}
             notice={
               <CoverageNotice
                 holdings={visible}
                 txns={txns.data ?? []}
                 stats={stats}
+                onDates={() => setDatesOpen(true)}
                 hint="Download a tradebook for each earlier year from Zerodha Console (Reports → Tradebook) and import them all; duplicates are skipped."
                 onImport={() => setTradebookOpen(true)}
                 importLabel="Import older tradebooks"
@@ -210,6 +222,12 @@ export default function IndiaPage() {
           <Movers holdings={all.filter((h) => h.source === "kite")} />
         </>
       )}
+      <PurchaseDatesDialog
+        open={datesOpen}
+        onOpenChange={setDatesOpen}
+        holdings={all}
+        txns={txns.data ?? []}
+      />
       <TradebookDialog open={tradebookOpen} onOpenChange={setTradebookOpen} holdings={all} />
     </div>
   );

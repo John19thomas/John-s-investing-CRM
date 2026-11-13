@@ -4,6 +4,7 @@
 // Secrets: ANTHROPIC_API_KEY (required), CHAT_MODEL (optional, default claude-sonnet-5-5).
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { portfolioXirr, positionStats, type Trade } from "../_shared/performance.ts";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -21,6 +22,7 @@ Answer using the PORTFOLIO DATA provided. Style: IC-grade, metrics-first, concis
 Rules:
 - Distinguish reported figures from estimates, and cite the period (e.g. Q2 FY27) and currency/unit for every number.
 - If the data needed is not in PORTFOLIO DATA, say so plainly; you may add general knowledge but label it as such and note it may be out of date.
+- For XIRR questions use the xirr block: quote blended_by_book for a book and by_holding for a stock, say how many holdings the blended figure covers, and say when a figure is an estimate or not calculable.
 - Never invent figures. Never give buy/sell instructions; frame views as considerations, not advice.
 - For private companies, draw on thesis, risks, metrics and document takeaways to help John revise and articulate his view.`;
 
@@ -67,6 +69,7 @@ Deno.serve(async (req) => {
     history,
     profiles,
     notes,
+    txns,
   ] = await Promise.all([
     db
       .from("holdings")
@@ -118,7 +121,75 @@ Deno.serve(async (req) => {
       .select("company_id,body,created_at")
       .order("created_at", { ascending: false })
       .limit(100),
+    db
+      .from("transactions")
+      .select("source,symbol,trade_date,side,quantity,price,amount,external_id")
+      .order("trade_date")
+      .limit(5000),
   ]);
+
+  // XIRR per holding and blended per book, computed from the trade ledger (same maths as the UI).
+  const today = new Date().toISOString().slice(0, 10);
+  const pctOf = (x: number | null) => (x == null ? null : Math.round(x * 1000) / 10);
+  const tradesOf = new Map<string, Trade[]>();
+  const estimatedSymbols = new Set<string>();
+  for (const t of txns.data ?? []) {
+    const k = `${t.source}:${t.symbol}`;
+    const list = tradesOf.get(k) ?? [];
+    list.push({
+      date: t.trade_date,
+      side: t.side,
+      quantity: Number(t.quantity),
+      price: Number(t.price),
+      amount: t.amount == null ? null : Number(t.amount),
+    });
+    tradesOf.set(k, list);
+    if (String(t.external_id).startsWith("opening:")) estimatedSymbols.add(k);
+  }
+  const books: Record<
+    string,
+    { trades: Trade[]; value: number; covered: number; total: number; totalValue: number }
+  > = {};
+  const xirrByHolding = (holdings.data ?? []).map((h) => {
+    const k = `${h.source}:${h.symbol}`;
+    const qty = Number(h.quantity);
+    const price = h.last_price == null ? null : Number(h.last_price);
+    const st = positionStats(tradesOf.get(k) ?? [], qty, price, today);
+    const book = h.source === "revolut" ? "global" : "india";
+    const b = (books[book] ??= { trades: [], value: 0, covered: 0, total: 0, totalValue: 0 });
+    const value = price != null ? qty * price : 0;
+    b.total++;
+    b.totalValue += value;
+    if (st.complete) {
+      b.covered++;
+      b.value += value;
+      b.trades.push(...(tradesOf.get(k) ?? []));
+    }
+    return {
+      symbol: h.symbol,
+      book,
+      xirr_pct: pctOf(st.xirr),
+      basis: !st.complete
+        ? "purchase history incomplete, XIRR not calculable"
+        : estimatedSymbols.has(k)
+          ? "estimated from a hand-entered purchase date"
+          : "from broker trades",
+      held_since: st.heldSince,
+      avg_holding_days: st.avgHoldingDays == null ? null : Math.round(st.avgHoldingDays),
+    };
+  });
+  const xirrByBook = Object.fromEntries(
+    Object.entries(books).map(([name, b]) => [
+      name,
+      {
+        blended_xirr_pct: b.covered
+          ? pctOf(portfolioXirr([{ trades: b.trades, value: b.value }], today))
+          : null,
+        holdings_covered: `${b.covered} of ${b.total}`,
+        share_of_value_covered_pct: b.totalValue ? Math.round((b.value / b.totalValue) * 100) : 0,
+      },
+    ]),
+  );
 
   const context = {
     today: new Date().toISOString().slice(0, 10),
@@ -131,6 +202,11 @@ Deno.serve(async (req) => {
     private_documents: docs.data ?? [],
     private_company_notes: notes.data ?? [],
     company_research: profiles.data ?? [],
+    xirr: {
+      note: "Annualised return from actual cash flows. India is in INR, global in USD; they are not combined. Blended figures cover only holdings with complete purchase history.",
+      blended_by_book: xirrByBook,
+      by_holding: xirrByHolding,
+    },
     notes_on_units:
       "financials money values are in millions of the stated currency; INR 1 crore = 10 million. private_companies status 'watching' means Tracking.",
   };

@@ -293,7 +293,11 @@ export function createDemoRepo(): Repo {
   const profiles = new Map<string, CompanyProfile>();
   for (const h of [...holdings.india, ...holdings.revolut])
     profiles.set(h.symbol, demoProfile(h, MEMO_FOR.has(h.symbol)));
-  let trades: Txn[] = [...demoTrades(holdings.india), ...demoTrades(holdings.revolut)];
+  // Two holdings have no trade history, to show how missing purchase dates are handled.
+  const NO_HISTORY = new Set(["ASIANPAINT", "ITC"]);
+  let trades: Txn[] = [...demoTrades(holdings.india), ...demoTrades(holdings.revolut)].filter(
+    (t) => !NO_HISTORY.has(t.symbol),
+  );
   const findHolding = (symbol: string) =>
     [...holdings.india, ...holdings.revolut].find((h) => h.symbol === symbol);
 
@@ -448,6 +452,16 @@ export function createDemoRepo(): Repo {
       await wait(150);
       const sources = scope === "india" ? ["kite", "kite_mf"] : ["revolut"];
       return structuredClone(trades.filter((t) => sources.includes(t.source)));
+    },
+    async setOpeningLots(rows) {
+      await wait(250);
+      const symbols = new Set(rows.map((r) => r.symbol));
+      trades = [
+        ...trades.filter((t) => !(t.estimated && symbols.has(t.symbol))),
+        ...rows
+          .filter((r) => r.quantity > 0 && r.date)
+          .map((r) => ({ ...r, amount: null, estimated: true })),
+      ].sort((a, b) => a.date.localeCompare(b.date));
     },
     async importTrades(rows) {
       await wait(400);

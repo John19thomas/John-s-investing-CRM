@@ -231,6 +231,15 @@ export function useWriteMemo() {
   });
 }
 
+export function useSetOpeningLots() {
+  const { repo } = useRepo();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (rows: TradeImport[]) => repo.setOpeningLots(rows),
+    onSuccess: () => qc.invalidateQueries({ queryKey: [repo.mode, "transactions"] }),
+  });
+}
+
 export function useImportTrades() {
   const { repo } = useRepo();
   const qc = useQueryClient();

@@ -241,6 +241,7 @@ const toTxn = (r: TxnRow): Txn => ({
   price: Number(r.price),
   amount: n(r.amount),
   currency: r.currency,
+  estimated: r.external_id.startsWith("opening:"),
 });
 
 export const liveRepo: Repo = {
@@ -457,6 +458,20 @@ export const liveRepo: Repo = {
       if (page.length < 1000) break;
     }
     return rows.map(toTxn);
+  },
+
+  async setOpeningLots(rows) {
+    for (const r of rows) {
+      ok(
+        await supabase
+          .from("transactions")
+          .delete()
+          .eq("source", r.source)
+          .eq("external_id", r.externalId),
+      );
+    }
+    const keep = rows.filter((r) => r.quantity > 0 && r.date);
+    if (keep.length) await this.importTrades(keep);
   },
 
   async importTrades(rows) {

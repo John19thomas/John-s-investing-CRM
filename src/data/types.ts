@@ -174,6 +174,8 @@ export type Txn = {
   price: number;
   amount: number | null;
   currency: string;
+  /** True for an opening lot entered by hand (approximate purchase date), not a broker trade. */
+  estimated?: boolean;
 };
 
 export type TradeImport = {
@@ -210,6 +212,8 @@ export interface Repo {
   financials(symbol: string): Promise<FinancialPeriod[]>;
   transactions(scope: PortfolioScope): Promise<Txn[]>;
   importTrades(rows: TradeImport[]): Promise<{ saved: number }>;
+  /** Replace hand-entered opening lots (externalId "opening:SYMBOL") for the given symbols. */
+  setOpeningLots(rows: TradeImport[]): Promise<void>;
   researchCompany(symbol: string, name: string | null, exchange: string | null): Promise<void>;
   writeMemo(symbol: string): Promise<void>;
   /** Fetch current market prices for holdings (live mode); returns how many were updated. */

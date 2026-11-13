@@ -31,12 +31,18 @@ export function HoldingsTable({
   profiles,
   stats,
   bookXirr,
+  estimated,
+  onDates,
 }: {
   holdings: Holding[];
   showDay?: boolean;
   profiles?: Map<string, CompanyProfile>;
   stats?: Map<string, PositionStats>;
   bookXirr?: number | null;
+  /** Symbols whose XIRR relies on a hand-entered purchase date. */
+  estimated?: Set<string>;
+  /** Opens the purchase-dates dialog; makes a missing XIRR clickable. */
+  onDates?: (() => void) | undefined;
 }) {
   const navigate = useNavigate();
   const { base } = useRepo();
@@ -175,9 +181,25 @@ export function HoldingsTable({
                   </td>
                   <td className="px-3 text-right">
                     {x.value != null ? (
-                      <Delta value={x.value} className="font-medium">
-                        {pct(x.value * 100, 1)}
-                      </Delta>
+                      <>
+                        <Delta value={x.value} className="font-medium">
+                          {pct(x.value * 100, 1)}
+                        </Delta>
+                        {estimated?.has(h.symbol) && (
+                          <div className="text-[11px] text-ink-3">estimated</div>
+                        )}
+                      </>
+                    ) : onDates && x.note !== "Held < 30 days" ? (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onDates();
+                        }}
+                        className="text-[12px] text-ink-3 underline decoration-line underline-offset-4 hover:text-ink"
+                      >
+                        Add purchase date
+                      </button>
                     ) : (
                       <span className="text-[12px] text-ink-3">{x.note}</span>
                     )}
